@@ -43,6 +43,15 @@ export type IncidentExportJobStatus =
   | 'failed'
   | 'success'
 export type CompareMetricDirection = 'improved' | 'regressed' | 'unchanged'
+export type UpdatePhase =
+  | 'unsupported'
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'no-update'
+  | 'error'
 
 export type OperationErrorCode =
   | 'VALIDATION_ERROR'
@@ -52,6 +61,20 @@ export type OperationErrorCode =
   | 'NOT_SUPPORTED'
   | 'CONFLICT'
   | 'INTERNAL_ERROR'
+
+export interface UpdateStatus {
+  currentVersion: string
+  phase: UpdatePhase
+  message: string
+  availableVersion?: string
+  downloadedVersion?: string
+  releaseDate?: string
+  checkedAt?: string
+  progressPercent?: number
+  bytesPerSecond?: number
+  transferredBytes?: number
+  totalBytes?: number
+}
 
 export interface ProviderCapabilities {
   supportsTTL: boolean

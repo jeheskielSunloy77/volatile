@@ -46,6 +46,7 @@ import type {
 	RetentionPurgeRequest,
 	RollbackRestoreRequest,
 	SnapshotListRequest,
+	UpdateStatus,
 	WorkflowExecuteRequest,
 	WorkflowExecutionGetRequest,
 	WorkflowExecutionListRequest,
@@ -56,6 +57,8 @@ import type {
 	WorkflowTemplatePreviewRequest,
 	WorkflowTemplateUpdateRequest,
 } from './cache'
+
+export type UpdateStatusListener = (status: UpdateStatus) => void
 
 export interface DesktopApi {
 	listConnections: () => Promise<
@@ -251,4 +254,8 @@ export interface DesktopApi {
 	getStorageSummary: () => Promise<
 		IpcResponseEnvelope<QueryResultMap['storage.summary']>
 	>
+	getUpdateStatus: () => Promise<UpdateStatus>
+	checkForUpdates: () => Promise<UpdateStatus>
+	applyUpdateAndRestart: () => Promise<void>
+	onUpdateStatusChange: (listener: UpdateStatusListener) => () => void
 }

@@ -1,6 +1,8 @@
 import { ipcRenderer } from 'electron'
+import type { IpcRendererEvent } from 'electron'
 
 import type { DesktopApi } from '../../shared/contracts/api'
+import type { UpdateStatus } from '../../shared/contracts/cache'
 import type {
 	CommandPayloadMap,
 	CommandResultMap,
@@ -12,6 +14,12 @@ import {
 	APP_COMMAND_CHANNEL,
 	APP_QUERY_CHANNEL,
 } from '../../shared/ipc/contracts'
+import {
+	APP_UPDATER_APPLY_CHANNEL,
+	APP_UPDATER_CHECK_CHANNEL,
+	APP_UPDATER_EVENT_CHANNEL,
+	APP_UPDATER_STATUS_CHANNEL,
+} from '../../shared/ipc/updater'
 import { commandEnvelopeSchema, queryEnvelopeSchema } from '../schemas/ipc'
 
 const createCorrelationId = (): string => {
@@ -125,4 +133,21 @@ export const desktopApi: DesktopApi = {
 		invokeCommand('retention.policy.update', payload),
 	purgeRetentionData: (payload) => invokeCommand('retention.purge', payload),
 	getStorageSummary: () => invokeQuery('storage.summary', {}),
+	getUpdateStatus: () => ipcRenderer.invoke(APP_UPDATER_STATUS_CHANNEL),
+	checkForUpdates: () => ipcRenderer.invoke(APP_UPDATER_CHECK_CHANNEL),
+	applyUpdateAndRestart: () => ipcRenderer.invoke(APP_UPDATER_APPLY_CHANNEL),
+	onUpdateStatusChange: (listener) => {
+		const handleStatusChange = (
+			_event: IpcRendererEvent,
+			status: UpdateStatus,
+		): void => {
+			listener(status)
+		}
+
+		ipcRenderer.on(APP_UPDATER_EVENT_CHANNEL, handleStatusChange)
+
+		return () => {
+			ipcRenderer.removeListener(APP_UPDATER_EVENT_CHANNEL, handleStatusChange)
+		}
+	},
 }

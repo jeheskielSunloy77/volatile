@@ -27,6 +27,10 @@ import {
 	SqliteWorkflowExecutionRepository,
 	SqliteWorkflowTemplateRepository,
 } from './persistence/sqlite'
+import {
+	DesktopAppUpdater,
+	registerUpdaterIpcHandlers,
+} from './updater/app-updater'
 
 if (started) {
 	app.quit()
@@ -38,6 +42,7 @@ type RuntimeContext = {
 }
 
 let runtime: RuntimeContext | null = null
+const desktopUpdater = new DesktopAppUpdater()
 
 const initializeRuntime = (): RuntimeContext => {
 	if (runtime) {
@@ -108,6 +113,7 @@ const initializeRuntime = (): RuntimeContext => {
 	)
 
 	registerIpcHandlers(service)
+	registerUpdaterIpcHandlers(desktopUpdater)
 
 	runtime = {
 		db,
@@ -140,6 +146,8 @@ const createMainWindow = (): BrowserWindow => {
 		)
 	}
 
+	desktopUpdater.syncWindow(mainWindow)
+
 	return mainWindow
 }
 
@@ -151,6 +159,8 @@ app.whenReady().then(async () => {
 			void error
 		})
 	createMainWindow()
+	desktopUpdater.initialize()
+	void desktopUpdater.checkForUpdates()
 
 	app.on('activate', () => {
 		if (BrowserWindow.getAllWindows().length === 0) {

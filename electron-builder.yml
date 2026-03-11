@@ -1,0 +1,28 @@
+appId: com.volatile.app
+productName: Volatile
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+directories:
+  output: release
+publish:
+  provider: github
+  owner: jeheskielSunloy77
+  repo: volatile
+win:
+  icon: assets/icon.ico
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}.${ext}
+mac:
+  icon: assets/icon.icns
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+linux:
+  category: Development
+  target:
+    - AppImage
