@@ -30,6 +30,7 @@ import {
 	TableRow,
 } from '@/renderer/components/ui/table'
 import { Textarea } from '@/renderer/components/ui/textarea'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import type {
 	ConnectionProfile,
@@ -310,6 +311,14 @@ export const GovernancePanel = ({
 		enabled: isAdminMode,
 		queryFn: async () => unwrapResponse(await window.desktopApi.getStorageSummary()),
 	})
+	useStartupGateReady(
+		'governance-admin-page',
+		isAdminMode &&
+			!policyPacksQuery.isLoading &&
+			(!isConnectionMode || !connectionId || !assignmentsQuery.isLoading) &&
+			(!isAdminMode || !retentionPoliciesQuery.isLoading) &&
+			(!isAdminMode || !storageSummaryQuery.isLoading),
+	)
 
 	React.useEffect(() => {
 		if (!isConnectionMode) {

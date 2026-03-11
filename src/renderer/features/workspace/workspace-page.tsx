@@ -36,6 +36,8 @@ import {
 	TabsList,
 	TabsTrigger,
 } from '@/renderer/components/ui/tabs'
+import { isWorkspaceStartupReady } from '@/renderer/app/startup-readiness'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import {
 	RendererOperationError,
 	unwrapResponse,
@@ -479,6 +481,17 @@ export const WorkspacePage = () => {
 	const capabilitiesError = getQueryErrorState(capabilitiesQuery.error)
 	const keyListError = getQueryErrorState(keyListQuery.error)
 	const keyDetailError = getQueryErrorState(keyDetailQuery.error)
+	const isStartupReady = isWorkspaceStartupReady({
+		connectionsLoading: connectionsQuery.isLoading,
+		connectionsCount: connections.length,
+		selectedConnectionId,
+		hasSelectedConnection: Boolean(selectedConnection),
+		namespacesLoading: namespacesQuery.isLoading,
+		capabilitiesLoading: capabilitiesQuery.isLoading,
+		keyListLoading: keyListQuery.isLoading,
+		keyCountLoading: keyCountQuery.isLoading,
+	})
+	useStartupGateReady('workspace-page', isStartupReady)
 
 	const lastQueryErrorToastRef = React.useRef({
 		capabilities: 0,

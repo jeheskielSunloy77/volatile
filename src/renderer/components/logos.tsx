@@ -54,14 +54,14 @@ export function LogoWordmark(props: { className?: string }) {
 			{/* The Text Component */}
 			<text
 				className='text-volatile fill-current text-foreground'
-				x={85}
+				x={75}
 				y={64}
 				fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
 				fontSize={44}
 				fontWeight={800}
 				letterSpacing='-0.01em'
 			>
-				volatile
+				olatile
 			</text>
 		</svg>
 	)

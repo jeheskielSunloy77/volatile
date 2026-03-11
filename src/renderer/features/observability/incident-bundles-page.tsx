@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 
 import { Card, CardContent } from '@/renderer/components/ui/card'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { ObservabilityPanel } from '@/renderer/features/observability/observability-panel'
 import { useUiStore } from '@/renderer/state/ui-store'
@@ -20,6 +21,10 @@ export const IncidentBundlesPage = () => {
 				(connection) => connection.id === selectedConnectionId,
 			) ?? null,
 		[connectionsQuery.data, selectedConnectionId],
+	)
+	useStartupGateReady(
+		'incident-bundles-empty-state',
+		!connectionsQuery.isLoading && !selectedConnection,
 	)
 
 	if (!selectedConnection) {

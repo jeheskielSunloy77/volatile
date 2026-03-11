@@ -29,6 +29,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/renderer/components/ui/table'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { useUiStore } from '@/renderer/state/ui-store'
 import type {
@@ -312,6 +313,18 @@ export const ObservabilityPanel = ({
 			return 1000
 		},
 	})
+	useStartupGateReady(
+		'incident-bundles-page',
+		showIncidentSection &&
+		(
+			showIncidentSection
+			? !incidentBundlesQuery.isLoading
+			: !dashboardQuery.isLoading &&
+				!keyspaceQuery.isLoading &&
+				!failedQuery.isLoading &&
+				!compareQuery.isLoading
+		),
+	)
 
 	const buildIncidentRequest = React.useCallback(() => {
 		if (selectedIncidentIncludes.length === 0) {

@@ -21,6 +21,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/renderer/components/ui/select'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import type { AlertRule, ConnectionProfile } from '@/shared/contracts/cache'
 
@@ -139,6 +140,7 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 		queryKey: ['alert-rules'],
 		queryFn: async () => unwrapResponse(await window.desktopApi.listAlertRules()),
 	})
+	useStartupGateReady('alerts-page', !alertsQuery.isLoading && !rulesQuery.isLoading)
 
 	const markReadMutation = useMutation({
 		mutationFn: async (id: string) =>

@@ -48,6 +48,8 @@ import {
 	InputGroupText,
 } from '@/renderer/components/ui/input-group'
 import { Separator } from '@/renderer/components/ui/separator'
+import { isConnectionsStartupReady } from '@/renderer/app/startup-readiness'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { ConnectionFormDialog } from '@/renderer/features/connections/connection-form-dialog'
 import {
@@ -109,6 +111,10 @@ export const ConnectionsPage = () => {
 		queryKey: ['connections'],
 		queryFn: async () => unwrapResponse(await window.desktopApi.listConnections()),
 	})
+	useStartupGateReady(
+		'connections-page',
+		isConnectionsStartupReady(connectionsQuery.isLoading),
+	)
 
 	const connections = connectionsQuery.data ?? []
 	const filteredConnections = React.useMemo(

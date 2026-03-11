@@ -42,6 +42,7 @@ import {
 	SidebarSeparator,
 	SidebarTrigger,
 } from '@/renderer/components/ui/sidebar'
+import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { AlertsNavbarPopover } from '@/renderer/features/alerts/alerts-navbar-popover'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { useUiStore } from '@/renderer/state/ui-store'
@@ -159,6 +160,7 @@ export const AppShellLayout = () => {
 		queryFn: async () =>
 			unwrapResponse(await window.desktopApi.listConnections()),
 	})
+	useStartupGateReady('app-shell', !connectionsQuery.isLoading)
 
 	const connections = connectionsQuery.data ?? []
 	const selectedConnection = React.useMemo(
