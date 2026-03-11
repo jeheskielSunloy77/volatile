@@ -45,6 +45,7 @@ import {
 import { AlertsNavbarPopover } from '@/renderer/features/alerts/alerts-navbar-popover'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { useUiStore } from '@/renderer/state/ui-store'
+import { LogoWordmark } from '../components/logos'
 
 type NavItem = {
 	label: string
@@ -155,7 +156,8 @@ export const AppShellLayout = () => {
 
 	const connectionsQuery = useQuery({
 		queryKey: ['connections'],
-		queryFn: async () => unwrapResponse(await window.desktopApi.listConnections()),
+		queryFn: async () =>
+			unwrapResponse(await window.desktopApi.listConnections()),
 	})
 
 	const connections = connectionsQuery.data ?? []
@@ -229,87 +231,93 @@ export const AppShellLayout = () => {
 		<SidebarProvider defaultOpen>
 			<Sidebar>
 				<SidebarHeader>
-					<DropdownMenu>
-						<DropdownMenuTrigger
-							className='w-full'
-							render={
-								<Button variant='outline' className='w-full h-fit justify-start py-2'>
-									<div className='font-medium flex items-start gap-2 w-full'>
-										<GaugeIcon className='mt-0.5 size-3.5 shrink-0' />
-										{selectedConnection ? (
-											<div className='flex w-full items-start justify-between gap-2'>
-												<div className='min-w-0'>
-													<p className='truncate w-fit font-bold'>
-														{selectedConnection.name}
-													</p>
-													<div className='flex items-center gap-1 mt-0.5'>
-														<Badge
-															className='text-[11px] px-1.5'
-															variant={
-																selectedConnection.environment === 'prod'
-																	? 'destructive'
-																	: 'default'
-															}
-														>
-															{selectedConnection.environment}
-														</Badge>
-														<Badge variant='outline' className='text-[11px] px-1.5'>
-															{selectedNamespace ? selectedNamespace.name : 'All Data'}
-														</Badge>
-													</div>
-												</div>
-												<ChevronDownIcon className='size-3.5 shrink-0' />
-											</div>
-										) : (
-											<p>No Connection Selected</p>
-										)}
-									</div>
-								</Button>
-							}
-						></DropdownMenuTrigger>
-						<DropdownMenuContent className='w-64'>
-							<DropdownMenuGroup>
-								<DropdownMenuLabel>Saved Connections</DropdownMenuLabel>
-								{connections.map((connection) => (
-									<DropdownMenuSub key={connection.id}>
-										<DropdownMenuSubTrigger
-											onClick={() => setSelectedConnectionId(connection.id)}
-										>
-											{connection.name}
-										</DropdownMenuSubTrigger>
-										<DropdownMenuSubContent>
-											<DropdownMenuItem
-												onClick={() => {
-													setSelectedConnectionId(connection.id)
-													setSelectedNamespaceId(connection.id, null)
-												}}
-											>
-												All Data
-											</DropdownMenuItem>
-											{(allNamespacesQuery.data?.[connection.id] ?? []).map(
-												(namespace) => (
-													<DropdownMenuItem
-														key={namespace.id}
-														onClick={() => {
-															setSelectedConnectionId(connection.id)
-															setSelectedNamespaceId(connection.id, namespace.id)
-														}}
-													>
-														{namespace.name}
-													</DropdownMenuItem>
-												),
-											)}
-										</DropdownMenuSubContent>
-									</DropdownMenuSub>
-								))}
-							</DropdownMenuGroup>
-						</DropdownMenuContent>
-					</DropdownMenu>
+					<div className='bg-muted py-1 h-10 text-sm font-medium w-full flex items-center justify-between px-2'>
+						<LogoWordmark className='h-full' />
+						<span className='text-[10px] text-muted-foreground'>v1.2.1</span>
+					</div>
 				</SidebarHeader>
 
 				<SidebarSeparator />
 
 				<SidebarContent>
+					<SidebarGroup>
+						<DropdownMenu>
+							<DropdownMenuTrigger
+								className='w-full'
+								render={
+									<Button variant='outline' className='w-full h-fit justify-start py-2'>
+										<div className='font-medium flex items-start gap-2 w-full'>
+											<GaugeIcon className='mt-0.5 size-3.5 shrink-0' />
+											{selectedConnection ? (
+												<div className='flex w-full items-start justify-between gap-2'>
+													<div className='min-w-0'>
+														<p className='truncate w-fit font-bold'>
+															{selectedConnection.name}
+														</p>
+														<div className='flex items-center gap-1 mt-0.5'>
+															<Badge
+																className='text-[11px] px-1.5'
+																variant={
+																	selectedConnection.environment === 'prod'
+																		? 'destructive'
+																		: 'default'
+																}
+															>
+																{selectedConnection.environment}
+															</Badge>
+															<Badge variant='outline' className='text-[11px] px-1.5'>
+																{selectedNamespace ? selectedNamespace.name : 'All Data'}
+															</Badge>
+														</div>
+													</div>
+													<ChevronDownIcon className='size-3.5 shrink-0' />
+												</div>
+											) : (
+												<p>No Connection Selected</p>
+											)}
+										</div>
+									</Button>
+								}
+							></DropdownMenuTrigger>
+							<DropdownMenuContent className='w-64'>
+								<DropdownMenuGroup>
+									<DropdownMenuLabel>Saved Connections</DropdownMenuLabel>
+									{connections.map((connection) => (
+										<DropdownMenuSub key={connection.id}>
+											<DropdownMenuSubTrigger
+												onClick={() => setSelectedConnectionId(connection.id)}
+											>
+												{connection.name}
+											</DropdownMenuSubTrigger>
+											<DropdownMenuSubContent>
+												<DropdownMenuItem
+													onClick={() => {
+														setSelectedConnectionId(connection.id)
+														setSelectedNamespaceId(connection.id, null)
+													}}
+												>
+													All Data
+												</DropdownMenuItem>
+												{(allNamespacesQuery.data?.[connection.id] ?? []).map(
+													(namespace) => (
+														<DropdownMenuItem
+															key={namespace.id}
+															onClick={() => {
+																setSelectedConnectionId(connection.id)
+																setSelectedNamespaceId(connection.id, namespace.id)
+															}}
+														>
+															{namespace.name}
+														</DropdownMenuItem>
+													),
+												)}
+											</DropdownMenuSubContent>
+										</DropdownMenuSub>
+									))}
+								</DropdownMenuGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Workspace</SidebarGroupLabel>
 						<SidebarGroupContent>
