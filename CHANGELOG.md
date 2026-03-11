@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-03-11
+
+### Added
+
+- Added in-app auto-update support with Electron Updater, including update checks, download progress, and restart-to-apply flows in Settings.
+- Added a startup readiness gate with a branded loading screen so major app surfaces wait for required data before rendering.
+- Added paginated workflow dry-run previews with cursor-based follow-up loading for larger result sets.
+- Added incident bundle previews that estimate export size, generate a checksum preview, and surface manifest counts before export starts.
+
+### Changed
+
+- Refreshed the app shell branding with animated Volatile wordmark and lettermark assets.
+- Replaced remaining native select inputs with the shared Select component for more consistent UI behavior across forms and panels.
+- Updated the app shell version display to read directly from package metadata.
+
+### Internal
+
+- Added IPC contracts for workflow preview and incident bundle preview flows.
+- Added updater IPC contracts and main-process updater orchestration for packaged releases.
+- Added integration coverage for workflow dry-run preview pagination.
+- Added startup readiness tests and updater event-mapping tests.
+
 ## [1.2.1] - 2026-03-10
 
 ### Changed
