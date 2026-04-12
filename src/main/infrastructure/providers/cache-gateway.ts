@@ -45,6 +45,16 @@ type EngineConnection = Pick<
 	'engine' | 'host' | 'port' | 'dbIndex' | 'tlsEnabled' | 'timeoutMs'
 >
 
+type RedisKeyType =
+	| 'string'
+	| 'list'
+	| 'set'
+	| 'zset'
+	| 'hash'
+	| 'stream'
+	| 'none'
+	| 'unknown'
+
 export class DefaultCacheGateway implements CacheGateway {
 	public constructor(
 		private readonly memcachedIndexRepository: MemcachedKeyIndexRepository,
@@ -170,6 +180,8 @@ export class DefaultCacheGateway implements CacheGateway {
 				value,
 				ttlSeconds: null,
 				supportsTTL: true,
+				keyType: 'string',
+				isStringEditable: true,
 			}
 		} catch (error) {
 			throw this.toConnectionFailure(error)
@@ -465,14 +477,18 @@ export class DefaultCacheGateway implements CacheGateway {
 		try {
 			await client.connect()
 
-			const [value, ttl] = await Promise.all([client.get(key), client.ttl(key)])
+			const [keyTypeRaw, ttl] = await Promise.all([client.type(key), client.ttl(key)])
+			const keyType = normalizeRedisKeyType(keyTypeRaw)
 			const ttlNumber = Number(ttl)
+			const value = await this.readRedisValueByType(client, key, keyType)
 
 			return {
 				key,
-				value: value === null ? null : toRedisText(value),
+				value,
 				ttlSeconds: Number.isFinite(ttlNumber) && ttlNumber >= 0 ? ttlNumber : null,
 				supportsTTL: true,
+				keyType,
+				isStringEditable: keyType === 'string' || keyType === 'none',
 			}
 		} catch (error) {
 			throw this.toConnectionFailure(error)
@@ -576,6 +592,49 @@ export class DefaultCacheGateway implements CacheGateway {
 			void error
 		})
 	}
+
+	private async readRedisValueByType(
+		client: RedisClientType,
+		key: string,
+		keyType: RedisKeyType,
+	): Promise<string | null> {
+		switch (keyType) {
+			case 'none':
+				return null
+			case 'string': {
+				const value = await client.get(key)
+				return value === null ? null : toRedisText(value)
+			}
+			case 'hash': {
+				const value = await client.hGetAll(key)
+				return serializeRedisStructuredValue(value)
+			}
+			case 'list': {
+				const values = await client.lRange(key, 0, -1)
+				return serializeRedisStructuredValue(values.map(toRedisText))
+			}
+			case 'set': {
+				const values = await client.sMembers(key)
+				return serializeRedisStructuredValue(values.map(toRedisText))
+			}
+			case 'zset': {
+				const values = await client.sendCommand(['ZRANGE', key, '0', '-1', 'WITHSCORES'])
+				return serializeRedisStructuredValue(parseRedisZsetEntries(values))
+			}
+			case 'stream': {
+				const entries = await client.sendCommand(['XRANGE', key, '-', '+'])
+				return serializeRedisStructuredValue(parseRedisStreamEntries(entries))
+			}
+			case 'unknown':
+			default: {
+				const value = await client.sendCommand(['DUMP', key])
+				return serializeRedisStructuredValue({
+					type: keyType,
+					dump: value === null ? null : toRedisText(value),
+				})
+			}
+		}
+	}
 }
 
 const toRedisText = (value: unknown): string => {
@@ -588,6 +647,84 @@ const toRedisText = (value: unknown): string => {
 	}
 
 	return String(value)
+}
+
+const normalizeRedisKeyType = (value: unknown): RedisKeyType => {
+	const normalized = toRedisText(value).toLowerCase()
+
+	switch (normalized) {
+		case 'string':
+		case 'list':
+		case 'set':
+		case 'zset':
+		case 'hash':
+		case 'stream':
+		case 'none':
+			return normalized
+		default:
+			return 'unknown'
+	}
+}
+
+const serializeRedisStructuredValue = (value: unknown): string =>
+	JSON.stringify(value, null, 2)
+
+const parseRedisZsetEntries = (value: unknown): Array<{ member: string; score: number }> => {
+	if (!Array.isArray(value)) {
+		return []
+	}
+
+	const entries: Array<{ member: string; score: number }> = []
+	for (let index = 0; index < value.length; index += 2) {
+		const member = value[index]
+		const score = value[index + 1]
+		if (member === undefined || score === undefined) {
+			continue
+		}
+
+		entries.push({
+			member: toRedisText(member),
+			score: Number(score),
+		})
+	}
+
+	return entries
+}
+
+const parseRedisStreamEntries = (
+	value: unknown,
+): Array<{ id: string; fields: Record<string, string> }> => {
+	if (!Array.isArray(value)) {
+		return []
+	}
+
+	const entries: Array<{ id: string; fields: Record<string, string> }> = []
+	for (const entry of value) {
+		if (!Array.isArray(entry) || entry.length < 2) {
+			continue
+		}
+
+		const [id, fieldsRaw] = entry
+		const fields: Record<string, string> = {}
+		if (Array.isArray(fieldsRaw)) {
+			for (let index = 0; index < fieldsRaw.length; index += 2) {
+				const field = fieldsRaw[index]
+				const fieldValue = fieldsRaw[index + 1]
+				if (field === undefined || fieldValue === undefined) {
+					continue
+				}
+
+				fields[toRedisText(field)] = toRedisText(fieldValue)
+			}
+		}
+
+		entries.push({
+			id: toRedisText(id),
+			fields,
+		})
+	}
+
+	return entries
 }
 
 type RedisSlowLogEntry = {

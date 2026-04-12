@@ -19,6 +19,8 @@ type KeyUpsertDialogProps = {
 	mode: 'create' | 'edit'
 	readOnly: boolean
 	supportsTTL: boolean
+	keyType?: string
+	isStringEditable?: boolean
 	isLoading: boolean
 	isSaving: boolean
 	errorMessage?: string
@@ -39,6 +41,8 @@ export const KeyUpsertDialog = ({
 	mode,
 	readOnly,
 	supportsTTL,
+	keyType,
+	isStringEditable,
 	isLoading,
 	isSaving,
 	errorMessage,
@@ -54,6 +58,7 @@ export const KeyUpsertDialog = ({
 	onSave,
 }: KeyUpsertDialogProps) => {
 	const isEditMode = mode === 'edit'
+	const isNonStringEditBlocked = isEditMode && isStringEditable === false
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,11 +69,14 @@ export const KeyUpsertDialog = ({
 							<DialogTitle>{isEditMode ? 'Edit Key' : 'Create Key'}</DialogTitle>
 							<DialogDescription>
 								{isEditMode
-									? 'Update key value and TTL using upsert.'
+									? isNonStringEditBlocked
+										? 'This key uses a non-string Redis type. String upsert is disabled.'
+										: 'Update key value and TTL using upsert.'
 									: 'Create a new key and optional TTL.'}
 							</DialogDescription>
 						</div>
 						{readOnly && <Badge variant='outline'>Read-only</Badge>}
+						{isEditMode && keyType && <Badge variant='outline'>Type: {keyType}</Badge>}
 					</div>
 				</DialogHeader>
 
@@ -104,7 +112,7 @@ export const KeyUpsertDialog = ({
 								onChange={(event) => onValueChange(event.target.value)}
 								className='min-h-44'
 								placeholder='JSON or string value'
-								disabled={readOnly}
+								disabled={readOnly || isNonStringEditBlocked}
 							/>
 						</div>
 
@@ -116,7 +124,7 @@ export const KeyUpsertDialog = ({
 									value={ttlSeconds}
 									onChange={(event) => onTtlChange(event.target.value)}
 									placeholder='Optional'
-									disabled={readOnly}
+									disabled={readOnly || isNonStringEditBlocked}
 								/>
 							</div>
 						)}
@@ -126,7 +134,13 @@ export const KeyUpsertDialog = ({
 				<DialogFooter>
 					<Button
 						onClick={onSave}
-						disabled={readOnly || isLoading || isSaving || keyName.trim().length === 0}
+						disabled={
+							readOnly ||
+							isLoading ||
+							isSaving ||
+							keyName.trim().length === 0 ||
+							isNonStringEditBlocked
+						}
 					>
 						<SaveIcon />
 						{isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Key'}

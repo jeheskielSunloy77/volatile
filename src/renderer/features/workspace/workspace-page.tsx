@@ -423,6 +423,8 @@ export const WorkspacePage = () => {
 			)
 		},
 	})
+	const selectedKeyType = keyDetailQuery.data?.keyType
+	const selectedKeyIsStringEditable = keyDetailQuery.data?.isStringEditable ?? true
 
 	React.useEffect(() => {
 		if (!isUpsertOpen || upsertMode !== 'edit' || !upsertTargetKey) {
@@ -829,6 +831,8 @@ export const WorkspacePage = () => {
 										keyName={selectedKey}
 										value={keyDetailQuery.data?.value ?? null}
 										ttlSeconds={keyDetailQuery.data?.ttlSeconds ?? null}
+										keyType={selectedKeyType}
+										isStringEditable={selectedKeyIsStringEditable}
 										readOnly={isSelectedConnectionReadOnly}
 										supportsTTL={capabilities.supportsTTL}
 										isLoading={Boolean(selectedKey) && keyDetailQuery.isLoading}
@@ -888,6 +892,16 @@ export const WorkspacePage = () => {
 				mode={upsertMode}
 				readOnly={isSelectedConnectionReadOnly}
 				supportsTTL={capabilities.supportsTTL}
+				keyType={
+					upsertMode === 'edit' && selectedKey === upsertTargetKey
+						? selectedKeyType
+						: 'string'
+				}
+				isStringEditable={
+					upsertMode === 'edit' && selectedKey === upsertTargetKey
+						? selectedKeyIsStringEditable
+						: true
+				}
 				isLoading={
 					upsertMode === 'edit' &&
 					Boolean(upsertTargetKey) &&

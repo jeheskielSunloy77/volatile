@@ -9,6 +9,13 @@ import { DefaultCacheGateway } from './cache-gateway'
 
 const redisScanMock = vi.fn()
 const redisDbSizeMock = vi.fn()
+const redisTypeMock = vi.fn()
+const redisTtlMock = vi.fn()
+const redisGetMock = vi.fn()
+const redisHGetAllMock = vi.fn()
+const redisLRangeMock = vi.fn()
+const redisSMembersMock = vi.fn()
+const redisSendCommandMock = vi.fn()
 const redisConnectMock = vi.fn(async () => undefined)
 const redisDisconnectMock = vi.fn(async () => undefined)
 
@@ -17,6 +24,13 @@ vi.mock('redis', () => ({
     connect: redisConnectMock,
     scan: redisScanMock,
     dbSize: redisDbSizeMock,
+    type: redisTypeMock,
+    ttl: redisTtlMock,
+    get: redisGetMock,
+    hGetAll: redisHGetAllMock,
+    lRange: redisLRangeMock,
+    sMembers: redisSMembersMock,
+    sendCommand: redisSendCommandMock,
     disconnect: redisDisconnectMock,
     isOpen: true,
   })),
@@ -80,6 +94,13 @@ describe('DefaultCacheGateway search pagination', () => {
   beforeEach(() => {
     redisScanMock.mockReset()
     redisDbSizeMock.mockReset()
+    redisTypeMock.mockReset()
+    redisTtlMock.mockReset()
+    redisGetMock.mockReset()
+    redisHGetAllMock.mockReset()
+    redisLRangeMock.mockReset()
+    redisSMembersMock.mockReset()
+    redisSendCommandMock.mockReset()
     redisConnectMock.mockClear()
     redisDisconnectMock.mockClear()
   })
@@ -216,5 +237,36 @@ describe('DefaultCacheGateway search pagination', () => {
       MATCH: 'tenant:*',
       COUNT: 50,
     })
+  })
+
+  it('reads hash keys without issuing GET', async () => {
+    redisTypeMock.mockResolvedValueOnce('hash')
+    redisTtlMock.mockResolvedValueOnce(90)
+    redisHGetAllMock.mockResolvedValueOnce({
+      id: '123',
+      status: 'active',
+    })
+
+    const gateway = new DefaultCacheGateway(createMemcachedRepository([]))
+
+    const result = await gateway.getValue(redisProfile, secret, 'user:123')
+
+    expect(result).toEqual({
+      key: 'user:123',
+      value: JSON.stringify(
+        {
+          id: '123',
+          status: 'active',
+        },
+        null,
+        2,
+      ),
+      ttlSeconds: 90,
+      supportsTTL: true,
+      keyType: 'hash',
+      isStringEditable: false,
+    })
+    expect(redisGetMock).not.toHaveBeenCalled()
+    expect(redisHGetAllMock).toHaveBeenCalledWith('user:123')
   })
 })

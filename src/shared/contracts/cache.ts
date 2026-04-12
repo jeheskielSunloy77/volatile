@@ -264,6 +264,8 @@ export interface KeyValueRecord {
   value: string | null
   ttlSeconds: number | null
   supportsTTL: boolean
+  keyType?: 'string' | 'list' | 'set' | 'zset' | 'hash' | 'stream' | 'none' | 'unknown'
+  isStringEditable?: boolean
 }
 
 export interface MutationResult {

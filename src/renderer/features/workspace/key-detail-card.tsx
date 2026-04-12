@@ -15,6 +15,8 @@ type KeyDetailCardProps = {
 	keyName: string | null
 	value: string | null
 	ttlSeconds: number | null
+	keyType?: string
+	isStringEditable?: boolean
 	readOnly: boolean
 	supportsTTL: boolean
 	isLoading: boolean
@@ -31,6 +33,8 @@ export const KeyDetailCard = ({
 	keyName,
 	value,
 	ttlSeconds,
+	keyType,
+	isStringEditable,
 	readOnly,
 	supportsTTL,
 	isLoading,
@@ -58,7 +62,7 @@ export const KeyDetailCard = ({
 							variant='outline'
 							size='sm'
 							onClick={onEdit}
-							disabled={!keyName || readOnly}
+							disabled={!keyName || readOnly || isStringEditable === false}
 						>
 							<PencilLineIcon className='size-3.5' />
 							Edit
@@ -90,9 +94,17 @@ export const KeyDetailCard = ({
 						<div className='space-y-1 border p-2 text-xs'>
 							<p className='text-muted-foreground'>Key</p>
 							<p className='font-medium break-all'>{keyName}</p>
+							{keyType && (
+								<p className='text-muted-foreground'>Type: {keyType}</p>
+							)}
 							{supportsTTL && (
 								<p className='text-muted-foreground'>
 									TTL seconds: {ttlSeconds ?? 'no expiration'}
+								</p>
+							)}
+							{isStringEditable === false && (
+								<p className='text-muted-foreground'>
+									This key uses a non-string Redis type and cannot be edited with string upsert.
 								</p>
 							)}
 						</div>
