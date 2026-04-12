@@ -58,6 +58,7 @@ import {
 } from '@/renderer/features/connections/filter-connections'
 import { useUiStore } from '@/renderer/state/ui-store'
 import type { ConnectionProfile } from '@/shared/contracts/cache'
+import { getCacheEngineLabel } from '@/shared/lib/cache-engines'
 
 type ConnectionDialogState = {
 	open: boolean
@@ -76,7 +77,7 @@ const engineFilterOptions: Array<{
 	label: string
 }> = [
 	{ value: 'all', label: 'All' },
-	{ value: 'redis', label: 'Redis' },
+	{ value: 'redisFamily', label: 'Redis Family' },
 	{ value: 'memcached', label: 'Memcached' },
 ]
 
@@ -196,7 +197,7 @@ export const ConnectionsPage = () => {
 								<div>
 									<CardTitle>Connection Management</CardTitle>
 									<CardDescription>
-										Manage saved Redis and Memcached profiles.
+										Manage saved Redis-family and Memcached profiles.
 									</CardDescription>
 								</div>
 								<div className='flex items-center gap-2'>
@@ -302,8 +303,8 @@ export const ConnectionsPage = () => {
 									</EmptyMedia>
 									<EmptyTitle>No connections yet</EmptyTitle>
 									<EmptyDescription>
-									Create your first Redis or Memcached profile to start using
-									the workspace.
+										Create your first Redis-family or Memcached profile to start
+										using the workspace.
 									</EmptyDescription>
 								</EmptyHeader>
 								<EmptyContent>
@@ -368,7 +369,9 @@ export const ConnectionsPage = () => {
 													{formatUpdatedAt(connection.updatedAt)}
 												</p>
 												<div className='flex flex-wrap items-center gap-1.5'>
-													<Badge variant='outline'>{connection.engine}</Badge>
+													<Badge variant='outline'>
+														{getCacheEngineLabel(connection.engine)}
+													</Badge>
 													<Badge variant='outline'>{connection.environment}</Badge>
 													{connection.readOnly && (
 														<Badge variant='destructive'>Read-only</Badge>

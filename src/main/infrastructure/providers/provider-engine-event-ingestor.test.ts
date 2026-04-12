@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ConnectionProfile } from '../../../shared/contracts/cache'
+import { isRedisFamilyEngine } from '../../../shared/lib/cache-engines'
 import type {
   CacheGateway,
   ConnectionRepository,
@@ -16,8 +17,8 @@ const createProfile = (
   name: id,
   engine,
   host: '127.0.0.1',
-  port: engine === 'redis' ? 6379 : 11211,
-  dbIndex: engine === 'redis' ? 0 : undefined,
+  port: engine === 'memcached' ? 11211 : 6379,
+  dbIndex: isRedisFamilyEngine(engine) ? 0 : undefined,
   tlsEnabled: false,
   environment: 'dev',
   tags: [],
@@ -32,7 +33,7 @@ describe('ProviderEngineEventIngestor', () => {
   it('polls engine events for supported profiles on start', async () => {
     const connectionRepository: ConnectionRepository = {
       list: vi.fn(async () => [
-        createProfile('redis-1', 'redis'),
+        createProfile('keydb-1', 'keydb'),
         createProfile('mem-1', 'memcached'),
       ]),
       findById: vi.fn(async () => null),
@@ -53,7 +54,7 @@ describe('ProviderEngineEventIngestor', () => {
       .mockResolvedValueOnce({
         events: [
           {
-            connectionId: 'redis-1',
+            connectionId: 'keydb-1',
             action: 'redis.slowlog.get',
             keyOrPattern: 'user:1',
             durationMs: 10,
@@ -74,7 +75,7 @@ describe('ProviderEngineEventIngestor', () => {
       getCapabilities: vi.fn((profile) => ({
         supportsTTL: true,
         supportsMonitorStream: false,
-        supportsSlowLog: profile.engine === 'redis',
+        supportsSlowLog: isRedisFamilyEngine(profile.engine),
         supportsBulkDeletePreview: false,
         supportsSnapshotRestore: false,
         supportsPatternScan: true,
@@ -87,7 +88,7 @@ describe('ProviderEngineEventIngestor', () => {
         key,
         value: null,
         ttlSeconds: null,
-        supportsTTL: profile.engine === 'redis',
+        supportsTTL: isRedisFamilyEngine(profile.engine),
       })),
       setValue: vi.fn(async () => undefined),
       deleteKey: vi.fn(async () => undefined),
@@ -116,7 +117,7 @@ describe('ProviderEngineEventIngestor', () => {
 
     await ingestor.stop()
 
-    expect(secretStore.getSecret).toHaveBeenCalledWith('redis-1')
+    expect(secretStore.getSecret).toHaveBeenCalledWith('keydb-1')
     expect(secretStore.getSecret).not.toHaveBeenCalledWith('mem-1')
   })
 })

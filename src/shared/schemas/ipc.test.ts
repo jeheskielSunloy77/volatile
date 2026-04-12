@@ -33,6 +33,30 @@ describe('commandEnvelopeSchema', () => {
     }
   })
 
+  it('accepts Redis-family payloads with dbIndex', () => {
+    const parsed = commandEnvelopeSchema.parse({
+      command: 'connection.create',
+      correlationId: 'abc-124',
+      payload: {
+        profile: {
+          name: 'local valkey',
+          engine: 'valkey',
+          host: '127.0.0.1',
+          port: 6379,
+          dbIndex: 2,
+          tlsEnabled: false,
+          environment: 'dev',
+          tags: ['local'],
+          readOnly: false,
+          timeoutMs: 5000,
+        },
+        secret: {},
+      },
+    })
+
+    expect(parsed.command).toBe('connection.create')
+  })
+
   it('rejects memcached payloads with dbIndex', () => {
     expect(() =>
       commandEnvelopeSchema.parse({

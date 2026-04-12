@@ -11,6 +11,7 @@ import type {
 	KeyValueRecord,
 	ProviderCapabilities,
 } from '../../../shared/contracts/cache'
+import { isRedisFamilyEngine } from '../../../shared/lib/cache-engines'
 
 import type {
 	CacheGateway,
@@ -52,7 +53,7 @@ export class DefaultCacheGateway implements CacheGateway {
 	public getCapabilities(
 		profile: Pick<ConnectionProfile, 'engine'>,
 	): ProviderCapabilities {
-		return profile.engine === 'redis'
+		return isRedisFamilyEngine(profile.engine)
 			? REDIS_CAPABILITIES
 			: MEMCACHED_CAPABILITIES
 	}
@@ -61,7 +62,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		profile: ConnectionDraft,
 		secret: ConnectionSecret,
 	): Promise<ConnectionTestResult> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			return this.testRedisConnection(profile, secret)
 		}
 
@@ -73,7 +74,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		args: { cursor?: string; limit: number },
 	): Promise<KeyListResult> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			return this.redisListKeys(profile, secret, args)
 		}
 
@@ -93,7 +94,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		args: { pattern: string; limit: number; cursor?: string },
 	): Promise<KeyListResult> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			return this.redisSearchKeys(profile, secret, args)
 		}
 
@@ -118,7 +119,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		profile: ConnectionProfile,
 		secret: ConnectionSecret,
 	): Promise<KeyCountResult> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			return this.redisCountKeys(profile, secret)
 		}
 
@@ -132,7 +133,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		args: { pattern: string },
 	): Promise<KeyCountResult> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			return this.redisCountKeysByPattern(profile, secret, args)
 		}
 
@@ -152,7 +153,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		key: string,
 	): Promise<KeyValueRecord> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			return this.redisGetValue(profile, secret, key)
 		}
 
@@ -182,7 +183,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		args: { key: string; value: string; ttlSeconds?: number },
 	): Promise<void> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			await this.redisSetValue(profile, secret, args)
 			return
 		}
@@ -205,7 +206,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		key: string,
 	): Promise<void> {
-		if (profile.engine === 'redis') {
+		if (isRedisFamilyEngine(profile.engine)) {
 			await this.redisDeleteKey(profile, secret, key)
 			return
 		}
@@ -226,7 +227,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		secret: ConnectionSecret,
 		args: { cursor?: string; limit: number },
 	): Promise<EngineEventPollResult> {
-		if (profile.engine !== 'redis') {
+		if (!isRedisFamilyEngine(profile.engine)) {
 			return {
 				events: [],
 				nextCursor: args.cursor,

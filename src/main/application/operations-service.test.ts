@@ -12,6 +12,7 @@ import type {
 	RetentionPolicy,
 	StorageSummary,
 } from '../../shared/contracts/cache'
+import { isRedisFamilyEngine } from '../../shared/lib/cache-engines'
 
 import { OperationFailure } from '../domain/operation-failure'
 import { OperationsService } from './operations-service'
@@ -138,7 +139,7 @@ const createGatewayMock = (overrides?: Partial<CacheGateway>): CacheGateway => {
 			key,
 			value: null,
 			ttlSeconds: null,
-			supportsTTL: profile.engine === 'redis',
+			supportsTTL: isRedisFamilyEngine(profile.engine),
 		})),
 		setValue: vi.fn(async () => undefined),
 		deleteKey: vi.fn(async () => undefined),

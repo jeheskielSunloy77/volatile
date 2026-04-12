@@ -38,6 +38,14 @@ describe('filterConnections', () => {
 			tags: ['core', 'critical'],
 		}),
 		createConnection({
+			id: 'valkey-1',
+			name: 'Valkey Cache',
+			engine: 'valkey',
+			host: 'valkey.internal.local',
+			port: 6379,
+			tags: ['replica'],
+		}),
+		createConnection({
 			id: 'memcached-1',
 			name: 'Cache Edge',
 			engine: 'memcached',
@@ -54,10 +62,24 @@ describe('filterConnections', () => {
 			engineFilter: 'all',
 		})
 
-		expect(result).toHaveLength(2)
+		expect(result).toHaveLength(3)
 	})
 
-	it('filters by engine', () => {
+	it('filters by Redis family', () => {
+		const result = filterConnections({
+			connections,
+			searchText: '',
+			engineFilter: 'redisFamily',
+		})
+
+		expect(result).toHaveLength(2)
+		expect(result.map((connection) => connection.id)).toEqual([
+			'redis-1',
+			'valkey-1',
+		])
+	})
+
+	it('filters by memcached engine', () => {
 		const result = filterConnections({
 			connections,
 			searchText: '',
@@ -105,10 +127,11 @@ describe('filterConnections', () => {
 	it('applies engine filter and search text together', () => {
 		const result = filterConnections({
 			connections,
-			searchText: 'cache',
-			engineFilter: 'redis',
+			searchText: 'valkey',
+			engineFilter: 'redisFamily',
 		})
 
-		expect(result).toHaveLength(0)
+		expect(result).toHaveLength(1)
+		expect(result[0].id).toBe('valkey-1')
 	})
 })

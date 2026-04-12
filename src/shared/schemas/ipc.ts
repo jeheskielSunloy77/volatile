@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { CACHE_ENGINES, isRedisFamilyEngine } from '../lib/cache-engines'
 
 export const correlationIdSchema = z.string().min(1)
 
-export const engineSchema = z.enum(['redis', 'memcached'])
+export const engineSchema = z.enum(CACHE_ENGINES)
 export const namespaceStrategySchema = z.enum(['redisLogicalDb', 'keyPrefix'])
 export const environmentSchema = z.enum(['dev', 'staging', 'prod'])
 export const backoffStrategySchema = z.enum(['fixed', 'exponential'])
@@ -68,11 +69,11 @@ export const connectionDraftSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.engine === 'memcached' && typeof value.dbIndex === 'number') {
+    if (!isRedisFamilyEngine(value.engine) && typeof value.dbIndex === 'number') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['dbIndex'],
-        message: 'dbIndex is only supported by redis profiles',
+        message: 'dbIndex is only supported by Redis-family profiles',
       })
     }
   })

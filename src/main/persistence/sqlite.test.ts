@@ -122,6 +122,22 @@ describeSqlite('sqlite persistence v2', () => {
 		expect(stored?.retryAbortOnErrorRate).toBe(0.5)
 	})
 
+	it('round-trips Redis-family engine variants', async () => {
+		const db = createTestDatabase()
+		const repository = new SqliteConnectionRepository(db)
+		const profile = {
+			...createProfile(),
+			id: 'conn-valkey',
+			name: 'Valkey',
+			engine: 'valkey' as const,
+		}
+
+		await repository.save(profile)
+
+		const stored = await repository.findById(profile.id)
+		expect(stored?.engine).toBe('valkey')
+	})
+
 	it('stores and fetches snapshot records', async () => {
 		const db = createTestDatabase()
 		const connectionRepository = new SqliteConnectionRepository(db)

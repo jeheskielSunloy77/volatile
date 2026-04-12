@@ -375,7 +375,7 @@ const runMigrations = (db: BetterSqlite3.Database): void => {
 type ConnectionRow = {
   id: string
   name: string
-  engine: 'redis' | 'memcached'
+  engine: ConnectionProfile['engine']
   host: string
   port: number
   db_index: number | null
@@ -436,7 +436,7 @@ export class SqliteConnectionRepository implements ConnectionRepository {
   private readonly saveStatement: BetterSqlite3.Statement<[
     string,
     string,
-    'redis' | 'memcached',
+    ConnectionProfile['engine'],
     string,
     number,
     number | null,
@@ -601,7 +601,7 @@ type NamespaceRow = {
   id: string
   connection_id: string
   name: string
-  engine: 'redis' | 'memcached'
+  engine: ConnectionProfile['engine']
   strategy: 'redisLogicalDb' | 'keyPrefix'
   db_index: number | null
   key_prefix: string | null
@@ -634,7 +634,7 @@ export class SqliteNamespaceRepository implements NamespaceRepository {
       string,
       string,
       string,
-      'redis' | 'memcached',
+      ConnectionProfile['engine'],
       'redisLogicalDb' | 'keyPrefix',
       number | null,
       string | null,

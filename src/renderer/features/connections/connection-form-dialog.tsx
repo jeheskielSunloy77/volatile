@@ -22,11 +22,16 @@ import {
 import { Switch } from '@/renderer/components/ui/switch'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import type {
+	CacheEngine,
 	ConnectionDraft,
 	ConnectionProfile,
 	ConnectionSecret,
 	NamespaceProfile,
 } from '@/shared/contracts/cache'
+import {
+	getDefaultPortForEngine,
+	isRedisFamilyEngine,
+} from '@/shared/lib/cache-engines'
 import { PlusIcon, SaveIcon, SearchCheck, Trash2Icon } from 'lucide-react'
 
 const DEFAULT_TIMEOUT_MS = 5000
@@ -43,7 +48,7 @@ type ConnectionFormDialogProps = {
 
 type FormState = {
 	name: string
-	engine: 'redis' | 'memcached'
+	engine: CacheEngine
 	host: string
 	port: string
 	tlsEnabled: boolean
@@ -73,7 +78,7 @@ const createDefaultFormState = (): FormState => ({
 	name: '',
 	engine: 'redis',
 	host: '127.0.0.1',
-	port: '6379',
+	port: String(getDefaultPortForEngine('redis')),
 	tlsEnabled: false,
 	environment: 'dev',
 	tags: '',
@@ -298,7 +303,7 @@ export const ConnectionFormDialog = ({
 						name: normalizedName,
 						strategy: engine === 'memcached' ? 'keyPrefix' : row.strategy,
 						dbIndex:
-							engine === 'redis' && row.strategy === 'redisLogicalDb'
+							isRedisFamilyEngine(engine) && row.strategy === 'redisLogicalDb'
 								? Number(row.dbIndex)
 								: undefined,
 						keyPrefix:
@@ -387,7 +392,7 @@ export const ConnectionFormDialog = ({
 					</DialogTitle>
 					<DialogDescription>
 						{mode === 'create'
-							? 'Configure Redis or Memcached profile settings and credentials.'
+							? 'Configure Redis-family or Memcached profile settings and credentials.'
 							: 'Configure profile settings. Leave credentials blank to test using the stored secret.'}
 					</DialogDescription>
 				</DialogHeader>
@@ -410,6 +415,7 @@ export const ConnectionFormDialog = ({
 							onValueChange={(value) => {
 								const nextEngine = value as FormState['engine']
 								onFieldChange('engine', nextEngine)
+								onFieldChange('port', String(getDefaultPortForEngine(nextEngine)))
 								setNamespaceRows((previous) =>
 									previous.map((row) =>
 										nextEngine === 'memcached'
@@ -427,6 +433,9 @@ export const ConnectionFormDialog = ({
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value='redis'>Redis</SelectItem>
+								<SelectItem value='keydb'>KeyDB</SelectItem>
+								<SelectItem value='dragonfly'>Dragonfly</SelectItem>
+								<SelectItem value='valkey'>Valkey</SelectItem>
 								<SelectItem value='memcached'>Memcached</SelectItem>
 							</SelectContent>
 						</Select>
@@ -448,7 +457,7 @@ export const ConnectionFormDialog = ({
 							id='connection-port'
 							value={form.port}
 							onChange={(event) => onFieldChange('port', event.target.value)}
-							placeholder={form.engine === 'redis' ? '6379' : '11211'}
+							placeholder={String(getDefaultPortForEngine(form.engine))}
 						/>
 					</div>
 
@@ -641,11 +650,11 @@ export const ConnectionFormDialog = ({
 										})
 									}
 								>
-									<SelectTrigger className='w-full disabled:opacity-60'>
-										<SelectValue />
-									</SelectTrigger>
+								<SelectTrigger className='w-full disabled:opacity-60'>
+									<SelectValue />
+								</SelectTrigger>
 									<SelectContent>
-										{form.engine === 'redis' && (
+										{isRedisFamilyEngine(form.engine) && (
 											<SelectItem value='redisLogicalDb'>
 												Redis Logical DB
 											</SelectItem>
@@ -665,7 +674,8 @@ export const ConnectionFormDialog = ({
 										placeholder='tenant:'
 									/>
 								)}
-								{form.engine === 'redis' && row.strategy === 'redisLogicalDb' && (
+								{isRedisFamilyEngine(form.engine) &&
+									row.strategy === 'redisLogicalDb' && (
 									<Input
 										value={row.dbIndex}
 										onChange={(event) =>

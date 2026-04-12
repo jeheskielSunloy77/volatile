@@ -55,6 +55,13 @@ const memcachedProfile: ConnectionProfile = {
   port: 11211,
 }
 
+const keydbProfile: ConnectionProfile = {
+  ...redisProfile,
+  id: 'keydb-1',
+  name: 'keydb',
+  engine: 'keydb',
+}
+
 const secret: ConnectionSecret = {}
 
 const createMemcachedRepository = (
@@ -188,5 +195,26 @@ describe('DefaultCacheGateway search pagination', () => {
     })
     expect(repository.countKeys).toHaveBeenCalledWith('mem-1')
     expect(repository.countKeysByPattern).toHaveBeenCalledWith('mem-1', 'k*')
+  })
+
+  it('routes non-redis Redis-family engines through the Redis code path', async () => {
+    redisScanMock.mockResolvedValueOnce({
+      keys: ['tenant:1'],
+      cursor: '0',
+    })
+
+    const gateway = new DefaultCacheGateway(createMemcachedRepository([]))
+
+    const result = await gateway.searchKeys(keydbProfile, secret, {
+      pattern: 'tenant:*',
+      limit: 5,
+    })
+
+    expect(result.keys).toEqual(['tenant:1'])
+    expect(redisConnectMock).toHaveBeenCalledTimes(1)
+    expect(redisScanMock).toHaveBeenCalledWith('0', {
+      MATCH: 'tenant:*',
+      COUNT: 50,
+    })
   })
 })

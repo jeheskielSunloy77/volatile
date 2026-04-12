@@ -98,6 +98,7 @@ import type {
 	WorkflowTemplatePreviewRequest,
 	WorkflowTemplateUpdateRequest,
 } from '../../shared/contracts/cache'
+import { isRedisFamilyEngine } from '../../shared/lib/cache-engines'
 import { OperationFailure } from '../domain/operation-failure'
 import { assertConnectionWritable } from '../policies/read-only-policy'
 import type {
@@ -3335,7 +3336,7 @@ export class OperationsService {
 			: null
 
 		const scopedProfile: ConnectionProfile =
-			profile.engine === 'redis'
+			isRedisFamilyEngine(profile.engine)
 				? {
 						...profile,
 						dbIndex:
@@ -4271,10 +4272,10 @@ const validateNamespaceDraft = (
 	}
 
 	if (draft.strategy === 'redisLogicalDb') {
-		if (engine !== 'redis') {
+		if (!isRedisFamilyEngine(engine)) {
 			throw new OperationFailure(
 				'VALIDATION_ERROR',
-				'redisLogicalDb strategy is only available for redis connections.',
+				'redisLogicalDb strategy is only available for Redis-family connections.',
 				false,
 			)
 		}

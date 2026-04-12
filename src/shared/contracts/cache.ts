@@ -1,4 +1,9 @@
-export type CacheEngine = 'redis' | 'memcached'
+export type CacheEngine =
+  | 'redis'
+  | 'keydb'
+  | 'dragonfly'
+  | 'valkey'
+  | 'memcached'
 export type NamespaceStrategy = 'redisLogicalDb' | 'keyPrefix'
 export type EnvironmentTag = 'dev' | 'staging' | 'prod'
 export type EventSource = 'app' | 'engine'

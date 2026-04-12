@@ -1,6 +1,7 @@
 import type { ConnectionProfile } from '@/shared/contracts/cache'
+import { isRedisFamilyEngine } from '@/shared/lib/cache-engines'
 
-export type ConnectionEngineFilter = 'all' | 'redis' | 'memcached'
+export type ConnectionEngineFilter = 'all' | 'redisFamily' | 'memcached'
 
 type FilterConnectionsInput = {
 	connections: ConnectionProfile[]
@@ -18,7 +19,11 @@ export const filterConnections = ({
 	const normalizedSearch = normalize(searchText)
 
 	return connections.filter((connection) => {
-		if (engineFilter !== 'all' && connection.engine !== engineFilter) {
+		if (engineFilter === 'redisFamily' && !isRedisFamilyEngine(connection.engine)) {
+			return false
+		}
+
+		if (engineFilter === 'memcached' && connection.engine !== 'memcached') {
 			return false
 		}
 
