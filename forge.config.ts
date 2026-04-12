@@ -1,6 +1,3 @@
-import { MakerDeb } from '@electron-forge/maker-deb'
-import { MakerSquirrel } from '@electron-forge/maker-squirrel'
-import { MakerZIP } from '@electron-forge/maker-zip'
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { VitePlugin } from '@electron-forge/plugin-vite'
@@ -40,25 +37,6 @@ const config: ForgeConfig = {
 		},
 	},
 	rebuildConfig: {},
-	makers: [
-		new MakerSquirrel({}, ['win32']),
-		new MakerZIP({}, ['darwin', 'linux']),
-		new MakerDeb(
-			{
-				options: {
-					maintainer: 'jeheskielSunloy77 <jeheskielventiokysunloy@gmail.com>',
-					homepage: 'https://github.com/jeheskielSunloy77/volatile',
-					icon: 'assets/icon.png',
-					categories: ['Development', 'Utility'],
-					synopsis:
-						'Desktop operations studio for cache workflows and observability',
-					description:
-						'Volatile is an Electron desktop app for managing cache connections, key workflows, observability, and incident exports.',
-				},
-			},
-			['linux'],
-		),
-	],
 	plugins: [
 		new AutoUnpackNativesPlugin({}),
 		new VitePlugin({
