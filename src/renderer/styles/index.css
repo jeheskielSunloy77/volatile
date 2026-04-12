@@ -127,3 +127,31 @@
 		@apply font-sans;
 	}
 }
+
+@layer components {
+	.json-token-punctuation {
+		color: #6272a4;
+	}
+
+	.json-token-key {
+		color: #ff79c6;
+		font-weight: 600;
+	}
+
+	.json-token-string {
+		color: #f1fa8c;
+	}
+
+	.json-token-number {
+		color: #bd93f9;
+	}
+
+	.json-token-boolean {
+		color: #8be9fd;
+	}
+
+	.json-token-null {
+		color: #6272a4;
+		font-style: italic;
+	}
+}

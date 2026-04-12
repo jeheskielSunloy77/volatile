@@ -1,4 +1,18 @@
 export type VisualizerDataType = 'raw' | 'json' | 'dsv'
+export type JsonTokenKind =
+	| 'punctuation'
+	| 'key'
+	| 'string'
+	| 'number'
+	| 'boolean'
+	| 'null'
+
+export type JsonTokenSegment = {
+	text: string
+	kind: JsonTokenKind
+}
+
+export type JsonTokenLine = JsonTokenSegment[]
 
 export type VisualizerDetection =
 	| {
@@ -145,6 +159,104 @@ export const parseJsonValue = (
 		}
 	}
 }
+
+const INDENT = '  '
+
+const createSegment = (
+	text: string,
+	kind: JsonTokenKind,
+): JsonTokenSegment => ({
+	text,
+	kind,
+})
+
+const formatJsonLine = (
+	indentLevel: number,
+	segments: JsonTokenSegment[],
+): JsonTokenLine => {
+	const indent = INDENT.repeat(indentLevel)
+	if (indent.length === 0) {
+		return segments
+	}
+
+	return [createSegment(indent, 'punctuation'), ...segments]
+}
+
+const formatJsonTokenValue = (
+	value: unknown,
+	indentLevel: number,
+): JsonTokenLine[] => {
+	if (value === null) {
+		return [[createSegment('null', 'null')]]
+	}
+
+	if (typeof value === 'string') {
+		return [[createSegment(JSON.stringify(value), 'string')]]
+	}
+
+	if (typeof value === 'number') {
+		return [[createSegment(String(value), 'number')]]
+	}
+
+	if (typeof value === 'boolean') {
+		return [[createSegment(String(value), 'boolean')]]
+	}
+
+	if (Array.isArray(value)) {
+		if (value.length === 0) {
+			return [[createSegment('[]', 'punctuation')]]
+		}
+
+		const lines: JsonTokenLine[] = [[createSegment('[', 'punctuation')]]
+		value.forEach((entry, index) => {
+			const entryLines = formatJsonTokenValue(entry, indentLevel + 1)
+			const isLastEntry = index === value.length - 1
+			lines.push(formatJsonLine(indentLevel + 1, entryLines[0]))
+			entryLines.slice(1).forEach((line) => {
+				lines.push(line)
+			})
+			if (!isLastEntry) {
+				const lastLine = lines[lines.length - 1]
+				lastLine.push(createSegment(',', 'punctuation'))
+			}
+		})
+		lines.push(formatJsonLine(indentLevel, [createSegment(']', 'punctuation')]))
+		return lines
+	}
+
+	if (typeof value === 'object') {
+		const entries = Object.entries(value)
+		if (entries.length === 0) {
+			return [[createSegment('{}', 'punctuation')]]
+		}
+
+		const lines: JsonTokenLine[] = [[createSegment('{', 'punctuation')]]
+		entries.forEach(([key, entryValue], index) => {
+			const entryLines = formatJsonTokenValue(entryValue, indentLevel + 1)
+			const isLastEntry = index === entries.length - 1
+			lines.push(
+				formatJsonLine(indentLevel + 1, [
+					createSegment(`${JSON.stringify(key)}: `, 'key'),
+					...entryLines[0],
+				]),
+			)
+			entryLines.slice(1).forEach((line) => {
+				lines.push(line)
+			})
+			if (!isLastEntry) {
+				const lastLine = lines[lines.length - 1]
+				lastLine.push(createSegment(',', 'punctuation'))
+			}
+		})
+		lines.push(formatJsonLine(indentLevel, [createSegment('}', 'punctuation')]))
+		return lines
+	}
+
+	return [[createSegment(JSON.stringify(value), 'string')]]
+}
+
+export const formatJsonForHighlight = (value: unknown): JsonTokenLine[] =>
+	formatJsonTokenValue(value, 0)
 
 export const detectValueStructure = (value: string): VisualizerDetection => {
 	const trimmed = value.trim()

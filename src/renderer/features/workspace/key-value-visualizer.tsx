@@ -19,9 +19,11 @@ import {
 } from '@/renderer/components/ui/table'
 import {
 	detectValueStructure,
+	formatJsonForHighlight,
 	normalizeDelimiter,
 	parseDelimiterSeparated,
 	parseJsonValue,
+	type JsonTokenKind,
 	type VisualizerDataType,
 } from '@/renderer/features/workspace/key-value-visualizer-utils'
 
@@ -51,6 +53,37 @@ const formatPrimitive = (value: unknown): string => {
 
 const isObjectLike = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const JSON_TOKEN_CLASS_NAMES: Record<JsonTokenKind, string> = {
+	punctuation: 'json-token-punctuation',
+	key: 'json-token-key',
+	string: 'json-token-string',
+	number: 'json-token-number',
+	boolean: 'json-token-boolean',
+	null: 'json-token-null',
+}
+
+const JsonPrettyRenderer = ({ value }: { value: unknown }) => {
+	const lines = React.useMemo(() => formatJsonForHighlight(value), [value])
+
+	return (
+		<pre className='bg-muted/40 whitespace-pre-wrap break-all rounded-none p-2 text-xs'>
+			{lines.map((line, lineIndex) => (
+				<React.Fragment key={`line-${lineIndex}`}>
+					{line.map((segment, segmentIndex) => (
+						<span
+							key={`segment-${lineIndex}-${segmentIndex}`}
+							className={JSON_TOKEN_CLASS_NAMES[segment.kind]}
+						>
+							{segment.text}
+						</span>
+					))}
+					{lineIndex < lines.length - 1 ? '\n' : null}
+				</React.Fragment>
+			))}
+		</pre>
+	)
+}
 
 const JsonTreeNode = ({
 	label,
@@ -245,9 +278,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 							</pre>
 						</div>
 					) : jsonRenderMode === 'pretty' ? (
-						<pre className='bg-muted/40 whitespace-pre-wrap break-all rounded-none p-2 text-xs'>
-							{JSON.stringify(jsonParsed.value, null, 2)}
-						</pre>
+						<JsonPrettyRenderer value={jsonParsed.value} />
 					) : (
 						<div className='space-y-1'>
 							<JsonTreeNode label='root' value={jsonParsed.value} depth={0} />

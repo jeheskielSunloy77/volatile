@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
 	detectValueStructure,
+	formatJsonForHighlight,
 	normalizeDelimiter,
 	parseDelimiterSeparated,
 	parseJsonValue,
@@ -49,5 +50,48 @@ describe('key-value-visualizer-utils', () => {
 	it('returns parser error for invalid JSON in JSON mode', () => {
 		const parsed = parseJsonValue('{"incomplete":')
 		expect(parsed.error).toBeTruthy()
+	})
+
+	it('formats structured json into tokenized pretty-printed lines', () => {
+		const lines = formatJsonForHighlight({
+			name: 'jay',
+			count: 2,
+			flags: [true, null],
+		})
+
+		expect(lines).toEqual([
+			[{ text: '{', kind: 'punctuation' }],
+			[
+				{ text: '  ', kind: 'punctuation' },
+				{ text: '"name": ', kind: 'key' },
+				{ text: '"jay"', kind: 'string' },
+				{ text: ',', kind: 'punctuation' },
+			],
+			[
+				{ text: '  ', kind: 'punctuation' },
+				{ text: '"count": ', kind: 'key' },
+				{ text: '2', kind: 'number' },
+				{ text: ',', kind: 'punctuation' },
+			],
+			[
+				{ text: '  ', kind: 'punctuation' },
+				{ text: '"flags": ', kind: 'key' },
+				{ text: '[', kind: 'punctuation' },
+			],
+			[
+				{ text: '    ', kind: 'punctuation' },
+				{ text: 'true', kind: 'boolean' },
+				{ text: ',', kind: 'punctuation' },
+			],
+			[
+				{ text: '    ', kind: 'punctuation' },
+				{ text: 'null', kind: 'null' },
+			],
+			[
+				{ text: '  ', kind: 'punctuation' },
+				{ text: ']', kind: 'punctuation' },
+			],
+			[{ text: '}', kind: 'punctuation' }],
+		])
 	})
 })
