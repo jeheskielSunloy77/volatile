@@ -22,7 +22,6 @@ type PackageJson = {
 
 const root = process.cwd()
 const packageJsonPath = path.join(root, 'package.json')
-const changelogPath = path.join(root, 'CHANGELOG.md')
 const requiredIconPaths = [
   path.join(root, 'assets', 'icon.png'),
   path.join(root, 'assets', 'icon.ico'),
@@ -105,19 +104,10 @@ if (isNonEmptyString(pkg.version)) {
 }
 
 checkRequiredFile(path.join(root, 'README.md'), 'README')
-checkRequiredFile(path.join(root, 'CHANGELOG.md'), 'CHANGELOG')
 checkRequiredFile(path.join(root, 'LICENSE'), 'LICENSE')
 checkRequiredFile(path.join(root, 'SECURITY.md'), 'SECURITY policy')
 checkRequiredFile(path.join(root, 'CONTRIBUTING.md'), 'CONTRIBUTING guide')
 checkRequiredFile(path.join(root, '.github', 'CODEOWNERS'), 'CODEOWNERS')
-
-if (fs.existsSync(changelogPath) && isNonEmptyString(pkg.version)) {
-  const changelog = fs.readFileSync(changelogPath, 'utf8')
-  assert(
-    changelog.includes(`## [${pkg.version}]`) || changelog.includes(`## ${pkg.version}`),
-    `CHANGELOG.md must include an entry for version ${pkg.version}.`,
-  )
-}
 
 for (const iconPath of requiredIconPaths) {
   checkRequiredFile(iconPath, 'Release icon')

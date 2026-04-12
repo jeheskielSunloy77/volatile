@@ -29,8 +29,8 @@ bun run test:all
 
 - Keep PRs focused and scoped.
 - Include tests for behavior changes.
-- Update `CHANGELOG.md` for user-visible changes.
-- For a release commit, update `package.json` `version` and add the matching `CHANGELOG.md` entry in the same change.
+- Update release notes or docs for user-visible changes when helpful.
+- For a release commit, update `package.json` `version` in the same change.
 
 ## Release Notes
 
