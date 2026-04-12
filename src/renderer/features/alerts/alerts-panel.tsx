@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+	AlertTriangleIcon,
+	BellRingIcon,
+	ChartColumnBigIcon,
+	HashIcon,
+	MapIcon,
+	ShieldAlertIcon,
+} from 'lucide-react'
 import * as React from 'react'
+import { Bar, BarChart, Cell, Pie, PieChart, XAxis, YAxis } from 'recharts'
 import { toast } from 'sonner'
 
 import { Badge } from '@/renderer/components/ui/badge'
@@ -11,8 +20,24 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/renderer/components/ui/card'
+import {
+	ChartConfig,
+	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
+	ChartTooltip,
+	ChartTooltipContent,
+} from '@/renderer/components/ui/chart'
 import { Checkbox } from '@/renderer/components/ui/checkbox'
-import { Input } from '@/renderer/components/ui/input'
+import {
+	DashboardChartCard,
+	DashboardStats,
+} from '@/renderer/components/ui/dashboard'
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from '@/renderer/components/ui/input-group'
 import { Label } from '@/renderer/components/ui/label'
 import {
 	Select,
@@ -54,6 +79,26 @@ type RuleFormState = {
 	environment: '' | 'dev' | 'staging' | 'prod'
 	enabled: boolean
 }
+
+const alertMetricLabels = {
+	errorRate: 'Error Rate',
+	latencyP95Ms: 'Latency P95 (ms)',
+	slowOperationCount: 'Slow Operation Count',
+	failedOperationCount: 'Failed Operation Count',
+} as const
+
+const alertSeverityLabels = {
+	info: 'Info',
+	warning: 'Warning',
+	critical: 'Critical',
+} as const
+
+const alertEnvironmentLabels = {
+	'': 'all',
+	dev: 'dev',
+	staging: 'staging',
+	prod: 'prod',
+} as const
 
 const createDefaultRuleForm = (
 	connection: ConnectionProfile | null,
@@ -216,9 +261,131 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 		setRuleForm(createDefaultRuleForm(connection))
 	}, [connection])
 
+	const alerts = alertsQuery.data ?? []
+	const rules = rulesQuery.data ?? []
+	const unreadCount = alerts.filter((alert) => !alert.read).length
+	const criticalCount = alerts.filter((alert) => alert.severity === 'critical').length
+	const severityData = [
+		{
+			severity: 'info',
+			value: alerts.filter((alert) => alert.severity === 'info').length,
+			fill: 'var(--color-info)',
+		},
+		{
+			severity: 'warning',
+			value: alerts.filter((alert) => alert.severity === 'warning').length,
+			fill: 'var(--color-warning)',
+		},
+		{
+			severity: 'critical',
+			value: criticalCount,
+			fill: 'var(--color-critical)',
+		},
+	].filter((item) => item.value > 0)
+	const ruleMetricData = ['errorRate', 'latencyP95Ms', 'slowOperationCount', 'failedOperationCount'].map(
+		(metric) => ({
+			metric,
+			rules: rules.filter((rule) => rule.metric === metric).length,
+			enabled: rules.filter((rule) => rule.metric === metric && rule.enabled).length,
+		}),
+	)
+	const chartConfig = {
+		info: { label: 'Info', color: 'var(--chart-1)' },
+		warning: { label: 'Warning', color: 'var(--chart-4)' },
+		critical: { label: 'Critical', color: 'var(--destructive)' },
+		value: { label: 'Alerts', color: 'var(--chart-1)' },
+		rules: { label: 'Rules', color: 'var(--chart-1)' },
+		enabled: { label: 'Enabled', color: 'var(--chart-2)' },
+	} satisfies ChartConfig
+
 	return (
-		<div className='grid min-h-0 gap-3 xl:grid-cols-2'>
-			<Card className='min-h-0'>
+		<div className='grid min-h-0 gap-3'>
+			<DashboardStats
+				items={[
+					{
+						label: 'Alerts In View',
+						value: alerts.length,
+						description: unreadOnly ? 'Unread-only filter active' : 'Current alert feed sample',
+					},
+					{
+						label: 'Unread',
+						value: unreadCount,
+						description: `${alerts.length - unreadCount} already acknowledged`,
+						tone: unreadCount > 0 ? 'warning' : 'positive',
+					},
+					{
+						label: 'Critical',
+						value: criticalCount,
+						description: 'Highest-severity incidents in the active feed',
+						tone: criticalCount > 0 ? 'danger' : 'default',
+					},
+					{
+						label: 'Rules Enabled',
+						value: rules.filter((rule) => rule.enabled).length,
+						description: `${rules.length} total alert rules`,
+					},
+				]}
+			/>
+
+			<div className='grid gap-3 xl:grid-cols-2'>
+				<DashboardChartCard
+					title='Severity Distribution'
+					description='Alert volume split by severity.'
+					loading={alertsQuery.isLoading}
+					error={
+						alertsQuery.isError
+							? alertsQuery.error instanceof Error
+								? alertsQuery.error.message
+								: 'Failed to load alerts.'
+							: undefined
+					}
+					empty={severityData.length === 0 ? 'No alert data to visualize.' : undefined}
+				>
+					<ChartContainer config={chartConfig} className='mx-auto min-h-[16rem] w-full max-w-[20rem]'>
+						<PieChart accessibilityLayer>
+							<ChartTooltip content={<ChartTooltipContent nameKey='severity' />} />
+							<Pie data={severityData} dataKey='value' nameKey='severity' innerRadius={48} outerRadius={78}>
+								{severityData.map((entry) => (
+									<Cell key={entry.severity} fill={entry.fill} />
+								))}
+							</Pie>
+							<ChartLegend content={<ChartLegendContent nameKey='severity' />} />
+						</PieChart>
+					</ChartContainer>
+				</DashboardChartCard>
+
+				<DashboardChartCard
+					title='Rule Coverage'
+					description='Saved rules by monitored metric, with enabled-rule overlay.'
+					loading={rulesQuery.isLoading}
+					error={
+						rulesQuery.isError
+							? rulesQuery.error instanceof Error
+								? rulesQuery.error.message
+								: 'Failed to load alert rules.'
+							: undefined
+					}
+					empty={
+						ruleMetricData.every((item) => item.rules === 0)
+							? 'No alert rules configured yet.'
+							: undefined
+					}
+				>
+					<ChartContainer config={chartConfig} className='min-h-[16rem] w-full'>
+						<BarChart accessibilityLayer data={ruleMetricData}>
+							<XAxis dataKey='metric' tickLine={false} axisLine={false} tickMargin={8} />
+							<YAxis tickLine={false} axisLine={false} width={36} />
+							<ChartTooltip content={<ChartTooltipContent />} />
+							<ChartLegend content={<ChartLegendContent />} />
+							<Bar dataKey='rules' fill='var(--color-rules)' radius={0} />
+							<Bar dataKey='enabled' fill='var(--color-enabled)' radius={0} />
+						</BarChart>
+					</ChartContainer>
+				</DashboardChartCard>
+			</div>
+
+			<div className='grid min-h-0 gap-3 xl:grid-cols-2'>
+			<Card className='min-h-0 rounded-none border shadow-none'>
 				<CardHeader>
 					<CardTitle>Alert Rule Builder</CardTitle>
 					<CardDescription>
@@ -229,17 +396,22 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 					<div className='grid gap-3 md:grid-cols-2'>
 						<div className='space-y-1.5'>
 							<Label htmlFor='alert-rule-name'>Rule Name</Label>
-							<Input
-								id='alert-rule-name'
-								value={ruleForm.name}
-								onChange={(event) =>
-									setRuleForm((current) => ({
-										...current,
-										name: event.target.value,
-									}))
-								}
-								placeholder='High error rate'
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<BellRingIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id='alert-rule-name'
+									value={ruleForm.name}
+									onChange={(event) =>
+										setRuleForm((current) => ({
+											...current,
+											name: event.target.value,
+										}))
+									}
+									placeholder='High error rate'
+								/>
+							</InputGroup>
 						</div>
 						<div className='space-y-1.5'>
 							<Label htmlFor='alert-rule-metric'>Metric</Label>
@@ -253,7 +425,8 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 								}
 							>
 								<SelectTrigger id='alert-rule-metric' className='w-full'>
-									<SelectValue />
+									<ChartColumnBigIcon className='size-3.5' />
+									<SelectValue>{alertMetricLabels[ruleForm.metric]}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value='errorRate'>errorRate</SelectItem>
@@ -267,29 +440,39 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 						</div>
 						<div className='space-y-1.5'>
 							<Label htmlFor='alert-rule-threshold'>Threshold</Label>
-							<Input
-								id='alert-rule-threshold'
-								value={ruleForm.threshold}
-								onChange={(event) =>
-									setRuleForm((current) => ({
-										...current,
-										threshold: event.target.value,
-									}))
-								}
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<AlertTriangleIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id='alert-rule-threshold'
+									value={ruleForm.threshold}
+									onChange={(event) =>
+										setRuleForm((current) => ({
+											...current,
+											threshold: event.target.value,
+										}))
+									}
+								/>
+							</InputGroup>
 						</div>
 						<div className='space-y-1.5'>
 							<Label htmlFor='alert-rule-lookback'>Lookback (minutes)</Label>
-							<Input
-								id='alert-rule-lookback'
-								value={ruleForm.lookbackMinutes}
-								onChange={(event) =>
-									setRuleForm((current) => ({
-										...current,
-										lookbackMinutes: event.target.value,
-									}))
-								}
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<HashIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id='alert-rule-lookback'
+									value={ruleForm.lookbackMinutes}
+									onChange={(event) =>
+										setRuleForm((current) => ({
+											...current,
+											lookbackMinutes: event.target.value,
+										}))
+									}
+								/>
+							</InputGroup>
 						</div>
 						<div className='space-y-1.5'>
 							<Label htmlFor='alert-rule-severity'>Severity</Label>
@@ -303,7 +486,10 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 								}
 							>
 								<SelectTrigger id='alert-rule-severity' className='w-full'>
-									<SelectValue />
+									<AlertTriangleIcon className='size-3.5' />
+									<SelectValue>
+										{alertSeverityLabels[ruleForm.severity]}
+									</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value='info'>info</SelectItem>
@@ -324,7 +510,10 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 								}
 							>
 								<SelectTrigger id='alert-rule-environment' className='w-full'>
-									<SelectValue />
+									<MapIcon className='size-3.5' />
+									<SelectValue>
+										{alertEnvironmentLabels[ruleForm.environment]}
+									</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value=''>all</SelectItem>
@@ -352,16 +541,21 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 						{ruleForm.connectionScoped && (
 							<div className='space-y-1.5'>
 								<Label htmlFor='alert-rule-connection-id'>Connection ID</Label>
-								<Input
-									id='alert-rule-connection-id'
-									value={ruleForm.connectionId}
-									onChange={(event) =>
-										setRuleForm((current) => ({
-											...current,
-											connectionId: event.target.value,
-										}))
-									}
-								/>
+								<InputGroup>
+									<InputGroupAddon>
+										<ShieldAlertIcon className='size-3.5' />
+									</InputGroupAddon>
+									<InputGroupInput
+										id='alert-rule-connection-id'
+										value={ruleForm.connectionId}
+										onChange={(event) =>
+											setRuleForm((current) => ({
+												...current,
+												connectionId: event.target.value,
+											}))
+										}
+									/>
+								</InputGroup>
 							</div>
 						)}
 						<label className='flex items-center gap-2'>
@@ -447,7 +641,7 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 				</CardContent>
 			</Card>
 
-			<Card className='min-h-0'>
+			<Card className='min-h-0 rounded-none border shadow-none'>
 				<CardHeader>
 					<div className='flex items-center justify-between gap-2'>
 						<div>
@@ -511,6 +705,7 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 					)}
 				</CardContent>
 			</Card>
+			</div>
 		</div>
 	)
 }

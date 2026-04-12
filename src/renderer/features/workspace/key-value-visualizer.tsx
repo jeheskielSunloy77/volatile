@@ -159,6 +159,16 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 		hasHeader && rows.length > 0 ? rows[0][index] || fallback : fallback,
 	)
 	const dataRows = hasHeader ? rows.slice(1) : rows
+	const visualizerModeLabel =
+		mode === 'auto'
+			? autoModeLabel
+			: mode === 'raw'
+				? 'Raw'
+				: mode === 'json'
+					? 'JSON'
+					: 'Delimiter-separated'
+	const jsonViewLabel =
+		jsonRenderMode === 'structured' ? 'Structured' : 'Pretty JSON'
 
 	return (
 		<div className='border-border flex h-full min-h-0 flex-col gap-3 border p-2'>
@@ -170,7 +180,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 						onValueChange={(value) => setMode(value as VisualizerMode)}
 					>
 						<SelectTrigger className='w-44'>
-							<SelectValue />
+							<SelectValue>{visualizerModeLabel}</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value='auto'>{autoModeLabel}</SelectItem>
@@ -188,7 +198,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 							onValueChange={(value) => setJsonRenderMode(value as JsonRenderMode)}
 						>
 							<SelectTrigger className='w-36'>
-								<SelectValue />
+								<SelectValue>{jsonViewLabel}</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value='structured'>Structured</SelectItem>

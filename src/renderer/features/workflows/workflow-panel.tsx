@@ -1,5 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+	BoxesIcon,
+	FileCode2Icon,
+	GaugeIcon,
+	HashIcon,
+	TimerResetIcon,
+	WorkflowIcon,
+} from 'lucide-react'
 import * as React from 'react'
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Cell,
+	Pie,
+	PieChart,
+	XAxis,
+	YAxis,
+} from 'recharts'
 import { toast } from 'sonner'
 
 import { Badge } from '@/renderer/components/ui/badge'
@@ -11,8 +29,24 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/renderer/components/ui/card'
+import {
+	ChartConfig,
+	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
+	ChartTooltip,
+	ChartTooltipContent,
+} from '@/renderer/components/ui/chart'
 import { Checkbox } from '@/renderer/components/ui/checkbox'
-import { Input } from '@/renderer/components/ui/input'
+import {
+	DashboardChartCard,
+	DashboardStats,
+} from '@/renderer/components/ui/dashboard'
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from '@/renderer/components/ui/input-group'
 import { Label } from '@/renderer/components/ui/label'
 import {
 	Select,
@@ -60,6 +94,17 @@ const createEmptyTemplate = (): WorkflowTemplateDraft => ({
 
 const isBuiltinTemplate = (templateId: string): boolean =>
 	templateId.startsWith('builtin-')
+
+const workflowKindLabels = {
+	deleteByPattern: 'Delete by pattern',
+	ttlNormalize: 'TTL normalize',
+	warmupSet: 'Warmup set',
+} as const
+
+const workflowRetryStrategyLabels = {
+	fixed: 'Fixed',
+	exponential: 'Exponential',
+} as const
 
 const getStatusBadgeVariant = (
 	status: string,
@@ -414,6 +459,44 @@ export const WorkflowPanel = ({
 		executeMutation.isPending ||
 		rerunMutation.isPending ||
 		resumeMutation.isPending
+	const executions = executionsQuery.data ?? []
+	const statusData = ['success', 'running', 'pending', 'error', 'aborted'].map(
+		(status) => ({
+			status,
+			value: executions.filter((execution) => execution.status === status).length,
+			fill:
+				status === 'success'
+					? 'var(--chart-2)'
+					: status === 'error' || status === 'aborted'
+						? 'var(--destructive)'
+						: status === 'running'
+							? 'var(--chart-1)'
+							: 'var(--chart-5)',
+		}),
+	).filter((item) => item.value > 0)
+	const executionTrendData = executions
+		.slice()
+		.reverse()
+		.slice(0, 8)
+		.map((execution) => ({
+			label: new Date(execution.startedAt).toLocaleTimeString([], {
+				hour: '2-digit',
+				minute: '2-digit',
+			}),
+			retries: execution.retryCount,
+			steps: execution.stepResults.length,
+		}))
+	const successCount = executions.filter(
+		(execution) => execution.status === 'success',
+	).length
+	const resumableCount = executions.filter(
+		(execution) => Boolean(execution.checkpointToken) && execution.status !== 'success',
+	).length
+	const chartConfig = {
+		value: { label: 'Executions', color: 'var(--chart-1)' },
+		retries: { label: 'Retries', color: 'var(--chart-4)' },
+		steps: { label: 'Steps', color: 'var(--chart-2)' },
+	} satisfies ChartConfig
 
 	if (isConnectionMode && !connection) {
 		return (
@@ -426,7 +509,98 @@ export const WorkflowPanel = ({
 	}
 
 	return (
-		<div className="grid min-h-0 gap-3 xl:grid-cols-[1fr_1fr]">
+		<div className="grid min-h-0 gap-3">
+			{isConnectionMode && (
+				<>
+					<DashboardStats
+						items={[
+							{
+								label: 'Recent Executions',
+								value: executions.length,
+								description: 'Workflow history rows in the active connection scope',
+							},
+							{
+								label: 'Success Rate',
+								value:
+									executions.length === 0
+										? '0%'
+										: `${Math.round((successCount / executions.length) * 100)}%`,
+								description: `${successCount} successful runs`,
+								tone: successCount === executions.length ? 'positive' : 'default',
+							},
+							{
+								label: 'Dry Runs',
+								value: executions.filter((execution) => execution.dryRun).length,
+								description: 'Non-destructive executions in recent history',
+							},
+							{
+								label: 'Resumable',
+								value: resumableCount,
+								description: 'Executions with checkpoints available',
+								tone: resumableCount > 0 ? 'warning' : 'default',
+							},
+						]}
+					/>
+					<div className="grid gap-3 xl:grid-cols-2">
+						<DashboardChartCard
+							title="Execution Status Mix"
+							description="Recent execution outcomes for the selected connection."
+							loading={executionsQuery.isLoading}
+							error={
+								executionsQuery.isError
+									? executionsQuery.error instanceof Error
+										? executionsQuery.error.message
+										: 'Failed to load executions.'
+									: undefined
+							}
+							empty={statusData.length === 0 ? 'No executions to visualize yet.' : undefined}
+						>
+							<ChartContainer config={chartConfig} className="mx-auto min-h-[16rem] w-full max-w-[20rem]">
+								<PieChart accessibilityLayer>
+									<ChartTooltip content={<ChartTooltipContent nameKey="status" />} />
+									<Pie data={statusData} dataKey="value" nameKey="status" innerRadius={48} outerRadius={78}>
+										{statusData.map((entry) => (
+											<Cell key={entry.status} fill={entry.fill} />
+										))}
+									</Pie>
+									<ChartLegend content={<ChartLegendContent nameKey="status" />} />
+								</PieChart>
+							</ChartContainer>
+						</DashboardChartCard>
+
+						<DashboardChartCard
+							title="Retry Pressure"
+							description="Retries and step counts across the latest executions."
+							loading={executionsQuery.isLoading}
+							error={
+								executionsQuery.isError
+									? executionsQuery.error instanceof Error
+										? executionsQuery.error.message
+										: 'Failed to load executions.'
+									: undefined
+							}
+							empty={
+								executionTrendData.length === 0
+									? 'No execution trend data yet.'
+									: undefined
+							}
+						>
+							<ChartContainer config={chartConfig} className="min-h-[16rem] w-full">
+								<BarChart accessibilityLayer data={executionTrendData}>
+									<CartesianGrid vertical={false} />
+									<XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+									<YAxis tickLine={false} axisLine={false} width={36} />
+									<ChartTooltip content={<ChartTooltipContent />} />
+									<ChartLegend content={<ChartLegendContent />} />
+									<Bar dataKey="steps" fill="var(--color-steps)" radius={0} />
+									<Bar dataKey="retries" fill="var(--color-retries)" radius={0} />
+								</BarChart>
+							</ChartContainer>
+						</DashboardChartCard>
+					</div>
+				</>
+			)}
+			<div className="grid min-h-0 gap-3 xl:grid-cols-[1fr_1fr]">
 			<Card>
 				<CardHeader>
 					<CardTitle>
@@ -462,7 +636,15 @@ export const WorkflowPanel = ({
 							}}
 						>
 							<SelectTrigger id="workflow-template-select" className="w-full">
-								<SelectValue />
+								<WorkflowIcon className='size-3.5' />
+								<SelectValue>
+									{selectedTemplateId === 'inline'
+										? 'Inline template'
+										: (templatesQuery.data ?? []).find(
+												(template) => template.id === selectedTemplateId,
+											)?.name ??
+											'Select template'}
+								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="inline">Inline template</SelectItem>
@@ -479,11 +661,16 @@ export const WorkflowPanel = ({
 					<div className="grid gap-3 md:grid-cols-2">
 						<div className="space-y-1.5">
 							<Label htmlFor="workflow-template-name">Template Name</Label>
-							<Input
-								id="workflow-template-name"
-								value={templateName}
-								onChange={(event) => setTemplateName(event.target.value)}
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<FileCode2Icon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id="workflow-template-name"
+									value={templateName}
+									onChange={(event) => setTemplateName(event.target.value)}
+								/>
+							</InputGroup>
 						</div>
 
 						<div className="space-y-1.5">
@@ -495,7 +682,8 @@ export const WorkflowPanel = ({
 								}
 							>
 								<SelectTrigger id="workflow-template-kind" className="w-full">
-									<SelectValue />
+									<BoxesIcon className='size-3.5' />
+									<SelectValue>{workflowKindLabels[templateKind]}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="deleteByPattern">
@@ -526,22 +714,32 @@ export const WorkflowPanel = ({
 						<div className="grid gap-3 md:grid-cols-2">
 							<div className="space-y-1.5">
 								<Label htmlFor="workflow-retry-max">Retry max attempts</Label>
-								<Input
-									id="workflow-retry-max"
-									value={retryMaxAttempts}
-									onChange={(event) => setRetryMaxAttempts(event.target.value)}
-								/>
+								<InputGroup>
+									<InputGroupAddon>
+										<HashIcon className='size-3.5' />
+									</InputGroupAddon>
+									<InputGroupInput
+										id="workflow-retry-max"
+										value={retryMaxAttempts}
+										onChange={(event) => setRetryMaxAttempts(event.target.value)}
+									/>
+								</InputGroup>
 							</div>
 
 							<div className="space-y-1.5">
 								<Label htmlFor="workflow-retry-backoff">
 									Retry backoff (ms)
 								</Label>
-								<Input
-									id="workflow-retry-backoff"
-									value={retryBackoffMs}
-									onChange={(event) => setRetryBackoffMs(event.target.value)}
-								/>
+								<InputGroup>
+									<InputGroupAddon>
+										<TimerResetIcon className='size-3.5' />
+									</InputGroupAddon>
+									<InputGroupInput
+										id="workflow-retry-backoff"
+										value={retryBackoffMs}
+										onChange={(event) => setRetryBackoffMs(event.target.value)}
+									/>
+								</InputGroup>
 							</div>
 
 							<div className="space-y-1.5">
@@ -555,7 +753,10 @@ export const WorkflowPanel = ({
 									}
 								>
 									<SelectTrigger id="workflow-retry-strategy" className="w-full">
-										<SelectValue />
+										<TimerResetIcon className='size-3.5' />
+										<SelectValue>
+											{workflowRetryStrategyLabels[retryStrategy]}
+										</SelectValue>
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="fixed">Fixed</SelectItem>
@@ -568,13 +769,18 @@ export const WorkflowPanel = ({
 								<Label htmlFor="workflow-retry-abort">
 									Abort on error rate (0-1)
 								</Label>
-								<Input
-									id="workflow-retry-abort"
-									value={retryAbortOnErrorRate}
-									onChange={(event) =>
-										setRetryAbortOnErrorRate(event.target.value)
-									}
-								/>
+								<InputGroup>
+									<InputGroupAddon>
+										<GaugeIcon className='size-3.5' />
+									</InputGroupAddon>
+									<InputGroupInput
+										id="workflow-retry-abort"
+										value={retryAbortOnErrorRate}
+										onChange={(event) =>
+											setRetryAbortOnErrorRate(event.target.value)
+										}
+									/>
+								</InputGroup>
 							</div>
 						</div>
 					)}
@@ -899,6 +1105,7 @@ export const WorkflowPanel = ({
 					</CardContent>
 				</Card>
 			)}
+			</div>
 		</div>
 	)
 }

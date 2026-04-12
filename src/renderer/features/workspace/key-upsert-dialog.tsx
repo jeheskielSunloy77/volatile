@@ -1,4 +1,4 @@
-import { SaveIcon } from 'lucide-react'
+import { Clock3Icon, KeyRoundIcon, SaveIcon, TextCursorInputIcon } from 'lucide-react'
 
 import { Badge } from '@/renderer/components/ui/badge'
 import { Button } from '@/renderer/components/ui/button'
@@ -11,8 +11,13 @@ import {
 	DialogTitle,
 } from '@/renderer/components/ui/dialog'
 import { Input } from '@/renderer/components/ui/input'
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+	InputGroupTextarea,
+} from '@/renderer/components/ui/input-group'
 import { Label } from '@/renderer/components/ui/label'
-import { Textarea } from '@/renderer/components/ui/textarea'
 
 type KeyUpsertDialogProps = {
 	open: boolean
@@ -95,37 +100,52 @@ export const KeyUpsertDialog = ({
 					<div className='space-y-3'>
 						<div className='space-y-1.5'>
 							<Label htmlFor='workspace-upsert-key'>Key</Label>
-							<Input
-								id='workspace-upsert-key'
-								value={keyName}
-								onChange={(event) => onKeyNameChange(event.target.value)}
-								placeholder='session:123'
-								disabled={isEditMode || readOnly}
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<KeyRoundIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id='workspace-upsert-key'
+									value={keyName}
+									onChange={(event) => onKeyNameChange(event.target.value)}
+									placeholder='session:123'
+									disabled={isEditMode || readOnly}
+								/>
+							</InputGroup>
 						</div>
 
 						<div className='space-y-1.5'>
 							<Label htmlFor='workspace-upsert-value'>Value</Label>
-							<Textarea
-								id='workspace-upsert-value'
-								value={value}
-								onChange={(event) => onValueChange(event.target.value)}
-								className='min-h-44'
-								placeholder='JSON or string value'
-								disabled={readOnly || isNonStringEditBlocked}
-							/>
+							<InputGroup className='min-h-44 items-start'>
+								<InputGroupAddon className='pt-2'>
+									<TextCursorInputIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupTextarea
+									id='workspace-upsert-value'
+									value={value}
+									onChange={(event) => onValueChange(event.target.value)}
+									className='min-h-44'
+									placeholder='JSON or string value'
+									disabled={readOnly || isNonStringEditBlocked}
+								/>
+							</InputGroup>
 						</div>
 
 						{supportsTTL && (
 							<div className='space-y-1.5'>
 								<Label htmlFor='workspace-upsert-ttl'>TTL seconds</Label>
-								<Input
-									id='workspace-upsert-ttl'
-									value={ttlSeconds}
-									onChange={(event) => onTtlChange(event.target.value)}
-									placeholder='Optional'
-									disabled={readOnly || isNonStringEditBlocked}
-								/>
+								<InputGroup>
+									<InputGroupAddon>
+										<Clock3Icon className='size-3.5' />
+									</InputGroupAddon>
+									<InputGroupInput
+										id='workspace-upsert-ttl'
+										value={ttlSeconds}
+										onChange={(event) => onTtlChange(event.target.value)}
+										placeholder='Optional'
+										disabled={readOnly || isNonStringEditBlocked}
+									/>
+								</InputGroup>
 							</div>
 						)}
 					</div>

@@ -1,4 +1,21 @@
 import * as React from 'react'
+import {
+	Clock3Icon,
+	DatabaseZapIcon,
+	FlagIcon,
+	HashIcon,
+	KeyRoundIcon,
+	MapPinIcon,
+	NetworkIcon,
+	PlusIcon,
+	SaveIcon,
+	SearchCheck,
+	ServerIcon,
+	TagIcon,
+	TimerResetIcon,
+	Trash2Icon,
+	UserIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/renderer/components/ui/button'
@@ -11,6 +28,11 @@ import {
 	DialogTitle,
 } from '@/renderer/components/ui/dialog'
 import { Input } from '@/renderer/components/ui/input'
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from '@/renderer/components/ui/input-group'
 import { Label } from '@/renderer/components/ui/label'
 import {
 	Select,
@@ -32,7 +54,6 @@ import {
 	getDefaultPortForEngine,
 	isRedisFamilyEngine,
 } from '@/shared/lib/cache-engines'
-import { PlusIcon, SaveIcon, SearchCheck, Trash2Icon } from 'lucide-react'
 
 const DEFAULT_TIMEOUT_MS = 5000
 
@@ -73,6 +94,30 @@ type NamespaceFormRow = {
 	keyPrefix: string
 	originalName?: string
 }
+
+const engineLabels: Record<CacheEngine, string> = {
+	redis: 'Redis',
+	keydb: 'KeyDB',
+	dragonfly: 'Dragonfly',
+	valkey: 'Valkey',
+	memcached: 'Memcached',
+}
+
+const environmentLabels = {
+	dev: 'dev',
+	staging: 'staging',
+	prod: 'prod',
+} as const
+
+const retryStrategyLabels = {
+	fixed: 'Fixed',
+	exponential: 'Exponential',
+} as const
+
+const namespaceStrategyLabels = {
+	redisLogicalDb: 'Redis Logical DB',
+	keyPrefix: 'Key Prefix',
+} as const
 
 const createDefaultFormState = (): FormState => ({
 	name: '',
@@ -400,12 +445,17 @@ export const ConnectionFormDialog = ({
 				<div className='grid gap-3 md:grid-cols-2'>
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-name'>Name</Label>
-						<Input
-							id='connection-name'
-							value={form.name}
-							onChange={(event) => onFieldChange('name', event.target.value)}
-							placeholder='Primary Redis'
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<ServerIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-name'
+								value={form.name}
+								onChange={(event) => onFieldChange('name', event.target.value)}
+								placeholder='Primary Redis'
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
@@ -429,7 +479,8 @@ export const ConnectionFormDialog = ({
 							}}
 						>
 							<SelectTrigger id='connection-engine' className='w-full'>
-								<SelectValue />
+								<DatabaseZapIcon className='size-3.5' />
+								<SelectValue>{engineLabels[form.engine]}</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value='redis'>Redis</SelectItem>
@@ -443,22 +494,32 @@ export const ConnectionFormDialog = ({
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-host'>Host</Label>
-						<Input
-							id='connection-host'
-							value={form.host}
-							onChange={(event) => onFieldChange('host', event.target.value)}
-							placeholder='127.0.0.1'
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<NetworkIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-host'
+								value={form.host}
+								onChange={(event) => onFieldChange('host', event.target.value)}
+								placeholder='127.0.0.1'
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-port'>Port</Label>
-						<Input
-							id='connection-port'
-							value={form.port}
-							onChange={(event) => onFieldChange('port', event.target.value)}
-							placeholder={String(getDefaultPortForEngine(form.engine))}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<MapPinIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-port'
+								value={form.port}
+								onChange={(event) => onFieldChange('port', event.target.value)}
+								placeholder={String(getDefaultPortForEngine(form.engine))}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
@@ -473,7 +534,8 @@ export const ConnectionFormDialog = ({
 							}
 						>
 							<SelectTrigger id='connection-environment' className='w-full'>
-								<SelectValue />
+								<FlagIcon className='size-3.5' />
+								<SelectValue>{environmentLabels[form.environment]}</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value='dev'>dev</SelectItem>
@@ -485,31 +547,48 @@ export const ConnectionFormDialog = ({
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-timeout'>Timeout (ms)</Label>
-						<Input
-							id='connection-timeout'
-							value={form.timeoutMs}
-							onChange={(event) => onFieldChange('timeoutMs', event.target.value)}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<Clock3Icon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-timeout'
+								value={form.timeoutMs}
+								onChange={(event) => onFieldChange('timeoutMs', event.target.value)}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-retry-max'>Retry max attempts</Label>
-						<Input
-							id='connection-retry-max'
-							value={form.retryMaxAttempts}
-							onChange={(event) =>
-								onFieldChange('retryMaxAttempts', event.target.value)
-							}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<PlusIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-retry-max'
+								value={form.retryMaxAttempts}
+								onChange={(event) =>
+									onFieldChange('retryMaxAttempts', event.target.value)
+								}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-retry-backoff'>Retry backoff (ms)</Label>
-						<Input
-							id='connection-retry-backoff'
-							value={form.retryBackoffMs}
-							onChange={(event) => onFieldChange('retryBackoffMs', event.target.value)}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<TimerResetIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-retry-backoff'
+								value={form.retryBackoffMs}
+								onChange={(event) =>
+									onFieldChange('retryBackoffMs', event.target.value)
+								}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
@@ -524,7 +603,10 @@ export const ConnectionFormDialog = ({
 							}
 						>
 							<SelectTrigger id='connection-retry-strategy' className='w-full'>
-								<SelectValue />
+								<TimerResetIcon className='size-3.5' />
+								<SelectValue>
+									{retryStrategyLabels[form.retryBackoffStrategy]}
+								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value='fixed'>fixed</SelectItem>
@@ -535,46 +617,66 @@ export const ConnectionFormDialog = ({
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-retry-abort'>Abort on error rate (0-1)</Label>
-						<Input
-							id='connection-retry-abort'
-							value={form.retryAbortOnErrorRate}
-							onChange={(event) =>
-								onFieldChange('retryAbortOnErrorRate', event.target.value)
-							}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<Clock3Icon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-retry-abort'
+								value={form.retryAbortOnErrorRate}
+								onChange={(event) =>
+									onFieldChange('retryAbortOnErrorRate', event.target.value)
+								}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-tags'>Tags (comma separated)</Label>
-						<Input
-							id='connection-tags'
-							value={form.tags}
-							onChange={(event) => onFieldChange('tags', event.target.value)}
-							placeholder='local, cache'
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<TagIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-tags'
+								value={form.tags}
+								onChange={(event) => onFieldChange('tags', event.target.value)}
+								placeholder='local, cache'
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-username'>Username</Label>
-						<Input
-							id='connection-username'
-							value={form.username}
-							onChange={(event) => onFieldChange('username', event.target.value)}
-							placeholder='Optional'
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<UserIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-username'
+								value={form.username}
+								onChange={(event) => onFieldChange('username', event.target.value)}
+								placeholder='Optional'
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='connection-password'>Password</Label>
-						<Input
-							id='connection-password'
-							type='password'
-							value={form.password}
-							onChange={(event) => onFieldChange('password', event.target.value)}
-							placeholder={
-								mode === 'edit' ? 'Leave blank to keep current secret' : 'Optional'
-							}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<KeyRoundIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='connection-password'
+								type='password'
+								value={form.password}
+								onChange={(event) => onFieldChange('password', event.target.value)}
+								placeholder={
+									mode === 'edit' ? 'Leave blank to keep current secret' : 'Optional'
+								}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='flex items-center justify-between rounded-none border p-2.5 text-xs'>
@@ -651,7 +753,10 @@ export const ConnectionFormDialog = ({
 									}
 								>
 								<SelectTrigger className='w-full disabled:opacity-60'>
-									<SelectValue />
+									<DatabaseZapIcon className='size-3.5' />
+									<SelectValue>
+										{namespaceStrategyLabels[row.strategy]}
+									</SelectValue>
 								</SelectTrigger>
 									<SelectContent>
 										{isRedisFamilyEngine(form.engine) && (
@@ -676,16 +781,21 @@ export const ConnectionFormDialog = ({
 								)}
 								{isRedisFamilyEngine(form.engine) &&
 									row.strategy === 'redisLogicalDb' && (
-									<Input
-										value={row.dbIndex}
-										onChange={(event) =>
-											updateNamespaceRow(index, {
-												dbIndex: event.target.value,
-											})
-										}
-										disabled={isExisting}
-										placeholder='0'
-									/>
+									<InputGroup>
+										<InputGroupAddon>
+											<HashIcon className='size-3.5' />
+										</InputGroupAddon>
+										<InputGroupInput
+											value={row.dbIndex}
+											onChange={(event) =>
+												updateNamespaceRow(index, {
+													dbIndex: event.target.value,
+												})
+											}
+											disabled={isExisting}
+											placeholder='0'
+										/>
+									</InputGroup>
 								)}
 								<Button
 									variant='destructive'

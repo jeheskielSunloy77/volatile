@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+	BoxIcon,
+	Clock3Icon,
+	FolderCogIcon,
+	FileTextIcon,
+	FolderArchiveIcon,
+	HashIcon,
+} from 'lucide-react'
 import * as React from 'react'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { toast } from 'sonner'
 
 import { Badge } from '@/renderer/components/ui/badge'
@@ -11,8 +20,25 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/renderer/components/ui/card'
+import {
+	ChartConfig,
+	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
+	ChartTooltip,
+	ChartTooltipContent,
+} from '@/renderer/components/ui/chart'
 import { Checkbox } from '@/renderer/components/ui/checkbox'
+import {
+	DashboardChartCard,
+	DashboardStats,
+} from '@/renderer/components/ui/dashboard'
 import { Input } from '@/renderer/components/ui/input'
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from '@/renderer/components/ui/input-group'
 import { Label } from '@/renderer/components/ui/label'
 import {
 	Select,
@@ -65,6 +91,13 @@ type RetentionDraftState = Record<
 		autoPurgeOldest: boolean
 	}
 >
+
+const retentionDatasetLabels = {
+	timelineEvents: 'Timeline Events',
+	observabilitySnapshots: 'Observability Snapshots',
+	workflowHistory: 'Workflow History',
+	incidentArtifacts: 'Incident Artifacts',
+} as const
 
 const defaultPolicyPackFormState: PolicyPackFormState = {
 	name: '',
@@ -515,6 +548,29 @@ export const GovernancePanel = ({
 			)
 		},
 		})
+	const policyPacks = policyPacksQuery.data ?? []
+	const storageDatasets = storageSummaryQuery.data?.datasets ?? []
+	const storageChartData = storageDatasets.map((dataset) => ({
+		dataset: dataset.dataset,
+		usageMb: Number((dataset.totalBytes / (1024 * 1024)).toFixed(1)),
+		budgetMb: Number((dataset.budgetBytes / (1024 * 1024)).toFixed(1)),
+	}))
+	const environmentCoverageData = ['dev', 'staging', 'prod'].map((environment) => ({
+		environment,
+		packs: policyPacks.filter((pack) => pack.environments.includes(environment as 'dev' | 'staging' | 'prod')).length,
+		enabled: policyPacks.filter(
+			(pack) =>
+				pack.enabled &&
+				pack.environments.includes(environment as 'dev' | 'staging' | 'prod'),
+		).length,
+	}))
+	const overBudgetCount = storageDatasets.filter((dataset) => dataset.overBudget).length
+	const chartConfig = {
+		usageMb: { label: 'Usage MB', color: 'var(--chart-4)' },
+		budgetMb: { label: 'Budget MB', color: 'var(--chart-2)' },
+		packs: { label: 'Policy Packs', color: 'var(--chart-1)' },
+		enabled: { label: 'Enabled Packs', color: 'var(--chart-2)' },
+	} satisfies ChartConfig
 
 	if (isConnectionMode) {
 		if (!connection) {
@@ -544,7 +600,15 @@ export const GovernancePanel = ({
 						onValueChange={setSelectedAssignedPolicyPackId}
 					>
 						<SelectTrigger className='w-full'>
-							<SelectValue />
+							<FolderCogIcon className='size-3.5' />
+							<SelectValue>
+								{selectedAssignedPolicyPackId === 'none'
+									? 'No policy pack assigned'
+									: (policyPacksQuery.data ?? []).find(
+											(policyPack) =>
+												policyPack.id === selectedAssignedPolicyPackId,
+										)?.name ?? 'Select policy pack'}
+							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value='none'>No policy pack assigned</SelectItem>
@@ -591,6 +655,95 @@ export const GovernancePanel = ({
 	}
 
 	return (
+		<div className='grid min-h-0 gap-3'>
+			<DashboardStats
+				items={[
+					{
+						label: 'Policy Packs',
+						value: policyPacks.length,
+						description: 'Saved governance policy definitions',
+					},
+					{
+						label: 'Enabled Packs',
+						value: policyPacks.filter((pack) => pack.enabled).length,
+						description: 'Actively enforceable policy packs',
+					},
+					{
+						label: 'Storage Used',
+						value: `${((storageSummaryQuery.data?.totalBytes ?? 0) / (1024 * 1024)).toFixed(1)} MB`,
+						description: `${storageDatasets.length} tracked datasets`,
+					},
+					{
+						label: 'Over Budget',
+						value: overBudgetCount,
+						description: 'Datasets exceeding configured retention budget',
+						tone: overBudgetCount > 0 ? 'danger' : 'positive',
+					},
+				]}
+			/>
+
+			<div className='grid gap-3 xl:grid-cols-2'>
+				<DashboardChartCard
+					title='Storage Usage vs Budget'
+					description='Dataset footprint compared against configured storage budgets.'
+					loading={storageSummaryQuery.isLoading}
+					error={
+						storageSummaryQuery.isError
+							? storageSummaryQuery.error instanceof Error
+								? storageSummaryQuery.error.message
+								: 'Failed to load storage summary.'
+							: undefined
+					}
+					empty={
+						storageChartData.length === 0
+							? 'No storage summary data available yet.'
+							: undefined
+					}
+				>
+					<ChartContainer config={chartConfig} className='min-h-[16rem] w-full'>
+						<BarChart accessibilityLayer data={storageChartData}>
+							<CartesianGrid vertical={false} />
+							<XAxis dataKey='dataset' tickLine={false} axisLine={false} tickMargin={8} />
+							<YAxis tickLine={false} axisLine={false} width={44} />
+							<ChartTooltip content={<ChartTooltipContent />} />
+							<ChartLegend content={<ChartLegendContent />} />
+							<Bar dataKey='usageMb' fill='var(--color-usageMb)' radius={0} />
+							<Bar dataKey='budgetMb' fill='var(--color-budgetMb)' radius={0} />
+						</BarChart>
+					</ChartContainer>
+				</DashboardChartCard>
+
+				<DashboardChartCard
+					title='Environment Coverage'
+					description='How many policy packs cover each environment and how many are enabled.'
+					loading={policyPacksQuery.isLoading}
+					error={
+						policyPacksQuery.isError
+							? policyPacksQuery.error instanceof Error
+								? policyPacksQuery.error.message
+								: 'Failed to load policy packs.'
+							: undefined
+					}
+					empty={
+						environmentCoverageData.every((item) => item.packs === 0)
+							? 'No policy packs configured yet.'
+							: undefined
+					}
+				>
+					<ChartContainer config={chartConfig} className='min-h-[16rem] w-full'>
+						<BarChart accessibilityLayer data={environmentCoverageData}>
+							<CartesianGrid vertical={false} />
+							<XAxis dataKey='environment' tickLine={false} axisLine={false} tickMargin={8} />
+							<YAxis tickLine={false} axisLine={false} width={36} />
+							<ChartTooltip content={<ChartTooltipContent />} />
+							<ChartLegend content={<ChartLegendContent />} />
+							<Bar dataKey='packs' fill='var(--color-packs)' radius={0} />
+							<Bar dataKey='enabled' fill='var(--color-enabled)' radius={0} />
+						</BarChart>
+					</ChartContainer>
+				</DashboardChartCard>
+			</div>
+
 		<div className='grid min-h-0 gap-3 xl:grid-cols-2'>
 			<Card className='min-h-0'>
 				<CardHeader>
@@ -603,29 +756,39 @@ export const GovernancePanel = ({
 				<CardContent className='space-y-3'>
 					<div className='space-y-1.5'>
 						<Label htmlFor='policy-pack-name'>Policy Pack Name</Label>
-						<Input
-							id='policy-pack-name'
-							value={policyPackForm.name}
-							onChange={(event) =>
-								setPolicyPackForm((current) => ({
-									...current,
-									name: event.target.value,
-								}))
-							}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<FolderArchiveIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='policy-pack-name'
+								value={policyPackForm.name}
+								onChange={(event) =>
+									setPolicyPackForm((current) => ({
+										...current,
+										name: event.target.value,
+									}))
+								}
+							/>
+						</InputGroup>
 					</div>
 					<div className='space-y-1.5'>
 						<Label htmlFor='policy-pack-description'>Description</Label>
-						<Input
-							id='policy-pack-description'
-							value={policyPackForm.description}
-							onChange={(event) =>
-								setPolicyPackForm((current) => ({
-									...current,
-									description: event.target.value,
-								}))
-							}
-						/>
+						<InputGroup>
+							<InputGroupAddon>
+								<FileTextIcon className='size-3.5' />
+							</InputGroupAddon>
+							<InputGroupInput
+								id='policy-pack-description'
+								value={policyPackForm.description}
+								onChange={(event) =>
+									setPolicyPackForm((current) => ({
+										...current,
+										description: event.target.value,
+									}))
+								}
+							/>
+						</InputGroup>
 					</div>
 
 					<div className='space-y-2 rounded-none border p-2 text-xs'>
@@ -671,29 +834,39 @@ export const GovernancePanel = ({
 					<div className='grid gap-3 md:grid-cols-2'>
 						<div className='space-y-1.5'>
 							<Label htmlFor='policy-pack-max-items'>Max Workflow Items</Label>
-							<Input
-								id='policy-pack-max-items'
-								value={policyPackForm.maxWorkflowItems}
-								onChange={(event) =>
-									setPolicyPackForm((current) => ({
-										...current,
-										maxWorkflowItems: event.target.value,
-									}))
-								}
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<BoxIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id='policy-pack-max-items'
+									value={policyPackForm.maxWorkflowItems}
+									onChange={(event) =>
+										setPolicyPackForm((current) => ({
+											...current,
+											maxWorkflowItems: event.target.value,
+										}))
+									}
+								/>
+							</InputGroup>
 						</div>
 						<div className='space-y-1.5'>
 							<Label htmlFor='policy-pack-max-retry'>Max Retry Attempts</Label>
-							<Input
-								id='policy-pack-max-retry'
-								value={policyPackForm.maxRetryAttempts}
-								onChange={(event) =>
-									setPolicyPackForm((current) => ({
-										...current,
-										maxRetryAttempts: event.target.value,
-									}))
-								}
-							/>
+							<InputGroup>
+								<InputGroupAddon>
+									<HashIcon className='size-3.5' />
+								</InputGroupAddon>
+								<InputGroupInput
+									id='policy-pack-max-retry'
+									value={policyPackForm.maxRetryAttempts}
+									onChange={(event) =>
+										setPolicyPackForm((current) => ({
+											...current,
+											maxRetryAttempts: event.target.value,
+										}))
+									}
+								/>
+							</InputGroup>
 						</div>
 					</div>
 
@@ -810,7 +983,6 @@ export const GovernancePanel = ({
 					</div>
 				</CardContent>
 			</Card>
-
 			<div className='grid min-h-0 gap-3'>
 				<Card>
 					<CardHeader>
@@ -825,32 +997,42 @@ export const GovernancePanel = ({
 								<div key={dataset} className='space-y-2 border p-2 text-xs'>
 									<p className='font-medium'>{dataset}</p>
 									<div className='grid gap-2 md:grid-cols-3'>
-										<Input
-											value={retentionDrafts[dataset].retentionDays}
-											onChange={(event) =>
-												setRetentionDrafts((current) => ({
-													...current,
-													[dataset]: {
-														...current[dataset],
-														retentionDays: event.target.value,
-													},
-												}))
-											}
-											placeholder='Retention days'
-										/>
-										<Input
-											value={retentionDrafts[dataset].storageBudgetMb}
-											onChange={(event) =>
-												setRetentionDrafts((current) => ({
-													...current,
-													[dataset]: {
-														...current[dataset],
-														storageBudgetMb: event.target.value,
-													},
-												}))
-											}
-											placeholder='Storage budget (MB)'
-										/>
+										<InputGroup>
+											<InputGroupAddon>
+												<Clock3Icon className='size-3.5' />
+											</InputGroupAddon>
+											<InputGroupInput
+												value={retentionDrafts[dataset].retentionDays}
+												onChange={(event) =>
+													setRetentionDrafts((current) => ({
+														...current,
+														[dataset]: {
+															...current[dataset],
+															retentionDays: event.target.value,
+														},
+													}))
+												}
+												placeholder='Retention days'
+											/>
+										</InputGroup>
+										<InputGroup>
+											<InputGroupAddon>
+												<BoxIcon className='size-3.5' />
+											</InputGroupAddon>
+											<InputGroupInput
+												value={retentionDrafts[dataset].storageBudgetMb}
+												onChange={(event) =>
+													setRetentionDrafts((current) => ({
+														...current,
+														[dataset]: {
+															...current[dataset],
+															storageBudgetMb: event.target.value,
+														},
+													}))
+												}
+												placeholder='Storage budget (MB)'
+											/>
+										</InputGroup>
 										<label className='flex items-center gap-2'>
 											<Checkbox
 												checked={retentionDrafts[dataset].autoPurgeOldest}
@@ -897,7 +1079,8 @@ export const GovernancePanel = ({
 								}
 							>
 								<SelectTrigger className='w-full'>
-									<SelectValue />
+									<BoxIcon className='size-3.5' />
+									<SelectValue>{retentionDatasetLabels[purgeDataset]}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value='timelineEvents'>timelineEvents</SelectItem>
@@ -1013,6 +1196,7 @@ export const GovernancePanel = ({
 						</div>
 					</CardContent>
 				</Card>
+			</div>
 			</div>
 		</div>
 	)

@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { PlusIcon } from 'lucide-react'
+import {
+	ActivityIcon,
+	DatabaseIcon,
+	PlusIcon,
+	ShieldIcon,
+	WorkflowIcon,
+} from 'lucide-react'
 import * as React from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -729,10 +735,22 @@ export const WorkspacePage = () => {
 					>
 						<div className='flex items-center justify-between gap-2'>
 							<TabsList>
-								<TabsTrigger value='workspace'>Workspace</TabsTrigger>
-								<TabsTrigger value='workflows'>Workflows</TabsTrigger>
-								<TabsTrigger value='observability'>Observability</TabsTrigger>
-								<TabsTrigger value='governance'>Governance</TabsTrigger>
+								<TabsTrigger value='workspace'>
+									<DatabaseIcon className='size-3.5' />
+									Workspace
+								</TabsTrigger>
+								<TabsTrigger value='workflows'>
+									<WorkflowIcon className='size-3.5' />
+									Workflows
+								</TabsTrigger>
+								<TabsTrigger value='observability'>
+									<ActivityIcon className='size-3.5' />
+									Observability
+								</TabsTrigger>
+								<TabsTrigger value='governance'>
+									<ShieldIcon className='size-3.5' />
+									Governance
+								</TabsTrigger>
 							</TabsList>
 							<Button
 								size='sm'
