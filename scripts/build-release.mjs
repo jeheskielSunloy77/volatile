@@ -63,9 +63,8 @@ function resolvePrepackagedPath({ productName, platform, arch }) {
 }
 
 function runBinary(command, args) {
-	const extension = process.platform === 'win32' ? '.cmd' : ''
-	const binaryPath = path.join(rootDir, 'node_modules', '.bin', `${command}${extension}`)
-	const result = spawnSync(binaryPath, args, {
+	const entrypoint = resolveCliEntrypoint(command)
+	const result = spawnSync(process.execPath, [entrypoint, ...args], {
 		cwd: rootDir,
 		stdio: 'inherit',
 		env: forgeEnv,
@@ -82,4 +81,23 @@ function runBinary(command, args) {
 	if (result.status !== 0) {
 		throw new Error(`${command} exited with status ${result.status ?? 'unknown'}`)
 	}
+}
+
+function resolveCliEntrypoint(command) {
+	if (command === 'electron-forge') {
+		return path.join(
+			rootDir,
+			'node_modules',
+			'@electron-forge',
+			'cli',
+			'dist',
+			'electron-forge.js',
+		)
+	}
+
+	if (command === 'electron-builder') {
+		return path.join(rootDir, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js')
+	}
+
+	throw new Error(`Unsupported command: ${command}`)
 }
