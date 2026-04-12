@@ -14,6 +14,12 @@ const publishMode =
 	publishIndex >= 0 && process.argv[publishIndex + 1]
 		? process.argv[publishIndex + 1]
 		: 'never'
+const forgeEnv = {
+	...process.env,
+	// Electron Forge uses this to detect the active package manager during its
+	// system check. Bun does not set a compatible value here, so normalize it.
+	npm_config_user_agent: 'npm/10.0.0',
+}
 
 runBinary('electron-forge', [
 	'package',
@@ -62,8 +68,16 @@ function runBinary(command, args) {
 	const result = spawnSync(binaryPath, args, {
 		cwd: rootDir,
 		stdio: 'inherit',
-		env: process.env,
+		env: forgeEnv,
 	})
+
+	if (result.error) {
+		throw new Error(`${command} failed to start: ${result.error.message}`)
+	}
+
+	if (result.signal) {
+		throw new Error(`${command} exited due to signal ${result.signal}`)
+	}
 
 	if (result.status !== 0) {
 		throw new Error(`${command} exited with status ${result.status ?? 'unknown'}`)
