@@ -116,7 +116,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 	const detection = React.useMemo(() => detectValueStructure(rawValue), [rawValue])
 	const [mode, setMode] = React.useState<VisualizerMode>('auto')
 	const [jsonRenderMode, setJsonRenderMode] =
-		React.useState<JsonRenderMode>('structured')
+		React.useState<JsonRenderMode>('pretty')
 	const [delimiterInput, setDelimiterInput] = React.useState(',')
 	const [hasHeader, setHasHeader] = React.useState(false)
 
@@ -130,7 +130,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 
 		setDelimiterInput(',')
 		setHasHeader(false)
-		setJsonRenderMode('structured')
+		setJsonRenderMode('pretty')
 	}, [keyId, rawValue, detection])
 
 	const activeType: VisualizerDataType =
