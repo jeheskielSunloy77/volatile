@@ -45,4 +45,38 @@ describe('unwrapResponse', () => {
       })
     }
   })
+
+  it('formats validation issue details into a readable message', () => {
+    const response: IpcResponseEnvelope<never> = {
+      ok: false,
+      correlationId: 'corr-3',
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid request payload.',
+        retryable: false,
+        details: {
+          issues: [
+            {
+              path: ['payload', 'profile', 'name'],
+              message: 'Invalid input',
+            },
+            {
+              path: ['payload', 'profile', 'port'],
+              message: 'Expected number',
+            },
+          ],
+        },
+      },
+    }
+
+    try {
+      unwrapResponse(response)
+      throw new Error('Expected unwrapResponse to throw')
+    } catch (error) {
+      expect(error).toBeInstanceOf(RendererOperationError)
+      expect((error as RendererOperationError).message).toBe(
+        'payload.profile.name: Invalid input; payload.profile.port: Expected number',
+      )
+    }
+  })
 })
