@@ -151,7 +151,10 @@ describe('DefaultCacheGateway search pagination', () => {
       cursor: '0',
     })
 
-    expect(result.keys).toEqual(['a', 'b'])
+    expect(result.keys).toEqual([
+      { key: 'a', keyType: 'unknown', ttlSeconds: null },
+      { key: 'b', keyType: 'unknown', ttlSeconds: null },
+    ])
     expect(result.nextCursor).toBe('23')
     expect(redisScanMock).toHaveBeenCalledWith('0', {
       MATCH: 'user:*',
@@ -173,7 +176,9 @@ describe('DefaultCacheGateway search pagination', () => {
       cursor: '11',
     })
 
-    expect(result.keys).toEqual(['a'])
+    expect(result.keys).toEqual([
+      { key: 'a', keyType: 'unknown', ttlSeconds: null },
+    ])
     expect(result.nextCursor).toBeUndefined()
     expect(redisScanMock).toHaveBeenCalledWith('11', {
       MATCH: 'user:*',
@@ -191,7 +196,7 @@ describe('DefaultCacheGateway search pagination', () => {
       cursor: 'k0',
     })
 
-    expect(result.keys).toEqual(['k1', 'k2'])
+    expect(result.keys).toEqual([{ key: 'k1' }, { key: 'k2' }])
     expect(result.nextCursor).toBe('k2')
     expect(repository.searchKeys).toHaveBeenCalledWith('mem-1', 'k*', 2, 'k0')
   })
@@ -206,7 +211,7 @@ describe('DefaultCacheGateway search pagination', () => {
       cursor: 'k0',
     })
 
-    expect(result.keys).toEqual(['k1'])
+    expect(result.keys).toEqual([{ key: 'k1' }])
     expect(result.nextCursor).toBeUndefined()
   })
 
@@ -263,7 +268,9 @@ describe('DefaultCacheGateway search pagination', () => {
       limit: 5,
     })
 
-    expect(result.keys).toEqual(['tenant:1'])
+    expect(result.keys).toEqual([
+      { key: 'tenant:1', keyType: 'unknown', ttlSeconds: null },
+    ])
     expect(redisConnectMock).toHaveBeenCalledTimes(1)
     expect(redisScanMock).toHaveBeenCalledWith('0', {
       MATCH: 'tenant:*',

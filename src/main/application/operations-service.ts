@@ -59,6 +59,7 @@ import type {
 	KeyDeleteRequest,
 	KeyGetRequest,
 	KeyListRequest,
+	KeyListEntry,
 	KeyListResult,
 	KeySearchRequest,
 	KeySetRequest,
@@ -3516,7 +3517,7 @@ export class OperationsService {
 	private createNamespaceKeyScope(namespace: NamespaceProfile | null): {
 		mapKeyForMutation: (key: string) => string
 		mapPatternForQuery: (pattern: string) => string
-		mapOutgoingKeys: (keys: string[]) => string[]
+		mapOutgoingKeys: (keys: KeyListEntry[]) => KeyListEntry[]
 	} {
 		const prefix = this.resolveNamespacePrefix(namespace)
 
@@ -3533,8 +3534,11 @@ export class OperationsService {
 			mapPatternForQuery: (pattern) => `${prefix}${pattern}`,
 			mapOutgoingKeys: (keys) =>
 				keys
-					.filter((key) => key.startsWith(prefix))
-					.map((key) => key.slice(prefix.length)),
+					.filter((item) => item.key.startsWith(prefix))
+					.map((item) => ({
+						...item,
+						key: item.key.slice(prefix.length),
+					})),
 		}
 	}
 
@@ -4207,19 +4211,23 @@ export class OperationsService {
 		const items: WorkflowDryRunPreviewItem[] = []
 
 		if (kind === 'deleteByPattern') {
-			for (const key of searchResult.keys) {
+			for (const entry of searchResult.keys) {
 				items.push({
-					key,
+					key: entry.key,
 					action: 'delete',
 				})
 			}
 		} else {
 			const ttlSeconds = clampInteger(parameters.ttlSeconds, 1, 31536000, 3600)
 
-			for (const key of searchResult.keys) {
-				const valueRecord = await this.cacheGateway.getValue(profile, secret, key)
+			for (const entry of searchResult.keys) {
+				const valueRecord = await this.cacheGateway.getValue(
+					profile,
+					secret,
+					entry.key,
+				)
 				items.push({
-					key,
+					key: entry.key,
 					action: 'setTtl',
 					currentTtlSeconds: valueRecord.ttlSeconds,
 					nextTtlSeconds: ttlSeconds,

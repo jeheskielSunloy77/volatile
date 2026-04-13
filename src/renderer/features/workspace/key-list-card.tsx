@@ -1,8 +1,13 @@
 import {
   FilePenLineIcon,
+  HashIcon,
   KeyRoundIcon,
+  CircleDashedIcon,
+  ListIcon,
   RefreshCwIcon,
+  SigmaIcon,
   SearchIcon,
+  ActivityIcon,
   Trash2Icon,
 } from "lucide-react";
 
@@ -25,10 +30,11 @@ import {
 import { Input } from "@/renderer/components/ui/input";
 import { Separator } from "@/renderer/components/ui/separator";
 import { LoadingSkeletonLines } from "@/renderer/components/ui/loading-skeleton";
+import type { KeyListEntry } from "@/shared/contracts/cache";
 
 type KeyListCardProps = {
   title: string;
-  keys: string[];
+  keys: KeyListEntry[];
   selectedKey: string | null;
   searchPattern: string;
   isLoading: boolean;
@@ -40,6 +46,7 @@ type KeyListCardProps = {
   totalFoundKeys?: number;
   isCountLoading?: boolean;
   getNamespaceBadge?: (key: string) => string | undefined;
+  getNamespacePrefix?: (key: string) => string | undefined;
   onSearchPatternChange: (value: string) => void;
   onSelectKey: (key: string) => void;
   onEditKey: (key: string) => void;
@@ -47,6 +54,75 @@ type KeyListCardProps = {
   onRefresh: () => void;
   onRetry?: () => void;
   onLoadNextPage: () => void;
+};
+
+const formatTtlLabel = (ttlSeconds: number | null | undefined): string | null => {
+  if (ttlSeconds === null) {
+    return null;
+  }
+
+  if (typeof ttlSeconds !== "number") {
+    return null;
+  }
+
+  if (ttlSeconds < 60) {
+    return `${ttlSeconds}s`;
+  }
+
+  if (ttlSeconds < 3600) {
+    return `${Math.floor(ttlSeconds / 60)}m`;
+  }
+
+  if (ttlSeconds < 86400) {
+    return `${Math.floor(ttlSeconds / 3600)}h`;
+  }
+
+  return `${Math.floor(ttlSeconds / 86400)}d`;
+};
+
+const getKeyTypePresentation = (
+  keyType: KeyListEntry["keyType"],
+): { title: string; label: string; Icon: typeof KeyRoundIcon } | null => {
+  switch (keyType) {
+    case "string":
+      return {
+        title: "string",
+        label: "string",
+        Icon: KeyRoundIcon,
+      };
+    case "hash":
+      return {
+        title: "hash",
+        label: "hash",
+        Icon: HashIcon,
+      };
+    case "list":
+      return {
+        title: "list",
+        label: "list",
+        Icon: ListIcon,
+      };
+    case "set":
+      return {
+        title: "set",
+        label: "set",
+        Icon: CircleDashedIcon,
+      };
+    case "zset":
+      return {
+        title: "sorted set",
+        label: "sorted set",
+        Icon: SigmaIcon,
+      };
+    case "stream":
+      return {
+        title: "stream",
+        label: "stream",
+        Icon: ActivityIcon,
+      };
+    default:
+      return null;
+  }
 };
 
 const renderCountLabel = (
@@ -84,6 +160,7 @@ export const KeyListCard = ({
   totalFoundKeys,
   isCountLoading,
   getNamespaceBadge,
+  getNamespacePrefix,
   onSearchPatternChange,
   onSelectKey,
   onEditKey,
@@ -158,35 +235,76 @@ export const KeyListCard = ({
               </EmptyHeader>
             </Empty>
           ) : (
-            keys.map((key) => {
-              const namespaceName = getNamespaceBadge?.(key);
+            keys.map((item) => {
+              const namespaceName = getNamespaceBadge?.(item.key);
+              const namespacePrefix = getNamespacePrefix?.(item.key);
+              const ttlLabel = formatTtlLabel(item.ttlSeconds);
+              const typePresentation = getKeyTypePresentation(item.keyType);
+              const TypeIcon = typePresentation?.Icon;
+              const hasPrefixHighlight =
+                typeof namespacePrefix === "string" &&
+                namespacePrefix.length > 0 &&
+                item.key.startsWith(namespacePrefix);
 
               return (
                 <div
-                  key={key}
-                  className={`group flex items-center justify-between cursor-pointer rounded-none border px-2 py-1.5 text-xs ${
-                    key === selectedKey
+                  key={item.key}
+                  className={`group flex cursor-pointer items-start justify-between rounded-none border px-2 py-1.5 text-xs ${
+                    item.key === selectedKey
                       ? "border-primary bg-primary/10"
                       : "hover:bg-muted/50 border-transparent"
                   }`}
-                  onClick={() => onSelectKey(key)}
+                  onClick={() => onSelectKey(item.key)}
                 >
-                  <div className="min-w-0 flex-1 truncate text-left">
-                    <span className="truncate">{key}</span>
-                    {namespaceName && (
-                      <Badge className="ml-2" variant="outline">
-                        {namespaceName}
-                      </Badge>
+                  <div className="min-w-0 flex-1 text-left">
+                    <div className="min-w-0 truncate">
+                      {hasPrefixHighlight ? (
+                        <>
+                          <span className="rounded-sm bg-muted px-1 py-0.5 font-medium text-foreground">
+                            {namespacePrefix}
+                          </span>
+                          <span>{item.key.slice(namespacePrefix.length)}</span>
+                        </>
+                      ) : (
+                        <span className="truncate">{item.key}</span>
+                      )}
+                      {namespaceName && (
+                        <Badge className="ml-2" variant="outline">
+                          {namespaceName}
+                        </Badge>
+                      )}
+                    </div>
+                    {(typePresentation || item.ttlSeconds !== null) && (
+                      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">
+                        {TypeIcon && typePresentation && (
+                          <Badge
+                            variant="outline"
+                            title={typePresentation.title}
+                            aria-label={typePresentation.title}
+                          >
+                            <TypeIcon className="size-3.5" />
+                            <span>{typePresentation.label}</span>
+                          </Badge>
+                        )}
+                        {ttlLabel && (
+                          <Badge
+                            variant="outline"
+                            className="transition-all opacity-100 group-hover:opacity-100"
+                          >
+                            TTL {ttlLabel}
+                          </Badge>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <div className="ml-2 flex items-center gap-2">
+                  <div className="ml-2 flex shrink-0 items-center gap-2">
                     {!readOnly ? (
                       <>
                         <Button
                           variant="ghost"
                           size="icon-xs"
                           className="opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => onEditKey(key)}
+                          onClick={() => onEditKey(item.key)}
                         >
                           <FilePenLineIcon className="size-3.5" />
                         </Button>
@@ -194,7 +312,7 @@ export const KeyListCard = ({
                           variant="ghost"
                           size="icon-xs"
                           className="opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => onDeleteKey(key)}
+                          onClick={() => onDeleteKey(item.key)}
                         >
                           <Trash2Icon className="size-3.5" />
                         </Button>

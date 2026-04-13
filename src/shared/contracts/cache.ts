@@ -301,8 +301,14 @@ export interface CacheFlushRequest {
   guardrailConfirmed?: boolean
 }
 
+export interface KeyListEntry {
+  key: string
+  ttlSeconds?: number | null
+  keyType?: RedisKeyType
+}
+
 export interface KeyListResult {
-  keys: string[]
+  keys: KeyListEntry[]
   nextCursor?: string
 }
 

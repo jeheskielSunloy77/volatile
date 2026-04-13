@@ -8,6 +8,7 @@ import type {
 	ConnectionSecret,
 	KeyCountResult,
 	ConnectionTestResult,
+	KeyListEntry,
 	KeyListResult,
 	KeySetRequest,
 	KeyValueRecord,
@@ -87,7 +88,7 @@ export class DefaultCacheGateway implements CacheGateway {
 		)
 
 		return {
-			keys,
+			keys: keys.map((key) => ({ key })),
 			nextCursor: undefined,
 		}
 	}
@@ -113,7 +114,7 @@ export class DefaultCacheGateway implements CacheGateway {
 				: undefined
 
 		return {
-			keys,
+			keys: keys.map((key) => ({ key })),
 			nextCursor,
 		}
 	}
@@ -374,9 +375,10 @@ export class DefaultCacheGateway implements CacheGateway {
 				COUNT: args.limit,
 			})
 			const nextCursor = toRedisText(scanResult.cursor)
+			const keys = scanResult.keys.map(toRedisText)
 
 			return {
-				keys: scanResult.keys.map(toRedisText),
+				keys: await this.readRedisKeySummaries(client, keys),
 				nextCursor: nextCursor === '0' ? undefined : nextCursor,
 			}
 		} catch (error) {
@@ -417,7 +419,10 @@ export class DefaultCacheGateway implements CacheGateway {
 			)
 
 			return {
-				keys: Array.from(keySet).slice(0, args.limit),
+				keys: await this.readRedisKeySummaries(
+					client,
+					Array.from(keySet).slice(0, args.limit),
+				),
 				nextCursor: cursor === '0' ? undefined : cursor,
 			}
 		} catch (error) {
@@ -508,6 +513,25 @@ export class DefaultCacheGateway implements CacheGateway {
 		} finally {
 			await this.disconnectRedisClient(client)
 		}
+	}
+
+	private async readRedisKeySummaries(
+		client: RedisClientType,
+		keys: string[],
+	): Promise<KeyListEntry[]> {
+		return Promise.all(
+			keys.map(async (key) => {
+				const [keyTypeRaw, ttl] = await Promise.all([client.type(key), client.ttl(key)])
+				const ttlNumber = Number(ttl)
+
+				return {
+					key,
+					keyType: normalizeRedisKeyType(keyTypeRaw),
+					ttlSeconds:
+						Number.isFinite(ttlNumber) && ttlNumber >= 0 ? ttlNumber : null,
+				}
+			}),
+		)
 	}
 
 	private async redisSetValue(

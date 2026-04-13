@@ -81,7 +81,7 @@ class InMemoryCacheGateway implements CacheGateway {
 			.slice(0, args.limit)
 
 		return {
-			keys,
+			keys: keys.map((key) => ({ key })),
 			nextCursor:
 				keys.length === args.limit && keys.length > 0
 					? keys[keys.length - 1]
@@ -105,7 +105,7 @@ class InMemoryCacheGateway implements CacheGateway {
 			.slice(0, args.limit)
 
 		return {
-			keys,
+			keys: keys.map((key) => ({ key })),
 			nextCursor:
 				keys.length === args.limit && keys.length > 0
 					? keys[keys.length - 1]

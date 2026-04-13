@@ -362,6 +362,20 @@ export const WorkspacePage = () => {
 		[keyPrefixNamespaces],
 	)
 
+	const resolveNamespacePrefix = React.useCallback(
+		(key: string): string | undefined => {
+			for (const namespace of keyPrefixNamespaces) {
+				const prefix = namespace.keyPrefix ?? ''
+				if (prefix.length > 0 && key.startsWith(prefix)) {
+					return prefix
+				}
+			}
+
+			return undefined
+		},
+		[keyPrefixNamespaces],
+	)
+
 	const capabilitiesQuery = useQuery({
 		queryKey: ['capabilities', selectedConnectionId],
 		enabled: Boolean(selectedConnectionId),
@@ -911,6 +925,9 @@ export const WorkspacePage = () => {
 										isCountLoading={keyCountQuery.isLoading}
 										getNamespaceBadge={
 											selectedNamespaceId ? undefined : resolveNamespaceBadge
+										}
+										getNamespacePrefix={
+											selectedNamespaceId ? undefined : resolveNamespacePrefix
 										}
 										onSearchPatternChange={(value) => {
 											setSearchPattern(value)

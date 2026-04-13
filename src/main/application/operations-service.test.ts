@@ -811,9 +811,12 @@ describe('OperationsService', () => {
 		const repository = new InMemoryConnectionRepository()
 		const secretStore = new InMemorySecretStore()
 		const memcachedIndex = new InMemoryMemcachedIndexRepository()
-		const listKeysMock = vi.fn(async () => ({ keys: ['fallback'], nextCursor: '7' }))
+		const listKeysMock = vi.fn(async () => ({
+			keys: [{ key: 'fallback' }],
+			nextCursor: '7',
+		}))
 		const searchKeysMock = vi.fn(async () => ({
-			keys: ['tenant:user:1', 'tenant:user:2'],
+			keys: [{ key: 'tenant:user:1' }, { key: 'tenant:user:2' }],
 			nextCursor: '13',
 		}))
 		const gateway = createGatewayMock({
@@ -853,7 +856,7 @@ describe('OperationsService', () => {
 		})
 
 		expect(result).toEqual({
-			keys: ['user:1', 'user:2'],
+			keys: [{ key: 'user:1' }, { key: 'user:2' }],
 			nextCursor: '13',
 		})
 		expect(searchKeysMock).toHaveBeenCalledWith(
@@ -997,7 +1000,7 @@ describe('OperationsService', () => {
 		const memcachedIndex = new InMemoryMemcachedIndexRepository()
 		const deleteKeyMock = vi.fn(async () => undefined)
 		const searchKeysMock = vi.fn(async () => ({
-			keys: ['session:1', 'session:2'],
+			keys: [{ key: 'session:1' }, { key: 'session:2' }],
 			nextCursor: undefined,
 		}))
 		const gateway = createGatewayMock({
@@ -1578,7 +1581,7 @@ describe('OperationsService', () => {
 		const secretStore = new InMemorySecretStore()
 		const memcachedIndex = new InMemoryMemcachedIndexRepository()
 		const searchKeysMock = vi.fn(async () => ({
-			keys: ['job:1', 'job:2', 'job:3'],
+			keys: [{ key: 'job:1' }, { key: 'job:2' }, { key: 'job:3' }],
 			nextCursor: undefined,
 		}))
 		const deleteKeyMock = vi.fn(
