@@ -33,6 +33,7 @@ import {
 	DashboardChartCard,
 	DashboardStats,
 } from '@/renderer/components/ui/dashboard'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -661,7 +662,9 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 				</CardHeader>
 				<CardContent className='max-h-[calc(100vh-360px)] space-y-2 overflow-auto'>
 					{alertsQuery.isLoading ? (
-						<p className='text-muted-foreground text-xs'>Loading alerts...</p>
+						<div className='space-y-2'>
+							<LoadingSkeletonLines count={4} widths={['w-5/6', 'w-2/3', 'w-3/4', 'w-1/2']} />
+						</div>
 					) : (alertsQuery.data?.length ?? 0) === 0 ? (
 						<p className='text-muted-foreground text-xs'>No alerts to display.</p>
 					) : (

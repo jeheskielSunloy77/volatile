@@ -32,6 +32,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/renderer/components/ui/card'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import {
 	Empty,
 	EmptyContent,
@@ -270,8 +271,8 @@ export const ConnectionsPage = () => {
 
 				{connectionsQuery.isLoading && (
 					<Card>
-						<CardContent className='p-4 text-xs text-muted-foreground'>
-							Loading connections...
+						<CardContent className='space-y-3 p-4'>
+							<LoadingSkeletonLines count={4} widths={['w-5/6', 'w-2/3', 'w-3/4', 'w-1/2']} />
 						</CardContent>
 					</Card>
 				)}

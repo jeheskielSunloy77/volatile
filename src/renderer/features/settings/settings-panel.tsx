@@ -12,6 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/renderer/components/ui/dialog'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import { Separator } from '@/renderer/components/ui/separator'
 import type { UpdateStatus } from '@/shared/contracts/cache'
 
@@ -153,10 +154,21 @@ export const SettingsPanel = ({ open, onOpenChange }: SettingsPanelProps) => {
 						</div>
 
 						<div className='space-y-2'>
-							<p className='text-sm font-medium'>{getUpdateHeadline(updateStatus)}</p>
-							<p className='text-xs leading-5 text-muted-foreground'>
-								{updateStatus?.message ?? 'Loading the current updater state.'}
-							</p>
+							{updateStatus ? (
+								<>
+									<p className='text-sm font-medium'>
+										{getUpdateHeadline(updateStatus)}
+									</p>
+									<p className='text-xs leading-5 text-muted-foreground'>
+										{updateStatus.message}
+									</p>
+								</>
+							) : (
+								<LoadingSkeletonLines
+									count={2}
+									widths={['w-1/2', 'w-2/3']}
+								/>
+							)}
 
 							{updateStatus?.phase === 'downloading' &&
 							updateStatus.progressPercent !== undefined ? (
@@ -202,7 +214,7 @@ export const SettingsPanel = ({ open, onOpenChange }: SettingsPanelProps) => {
 
 const getUpdateHeadline = (status: UpdateStatus | null): string => {
 	if (!status) {
-		return 'Loading update status'
+		return 'Ready to check for updates'
 	}
 
 	switch (status.phase) {

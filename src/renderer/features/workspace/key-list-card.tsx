@@ -16,6 +16,7 @@ import {
 } from "@/renderer/components/ui/card";
 import { Input } from "@/renderer/components/ui/input";
 import { Separator } from "@/renderer/components/ui/separator";
+import { LoadingSkeletonLines } from "@/renderer/components/ui/loading-skeleton";
 
 type KeyListCardProps = {
   title: string;
@@ -119,7 +120,12 @@ export const KeyListCard = ({
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-1 overflow-auto">
           {isLoading ? (
-            <p className="text-muted-foreground p-2 text-xs">Loading keys...</p>
+            <div className="space-y-2 p-2">
+              <LoadingSkeletonLines
+                count={5}
+                widths={["w-5/6", "w-3/4", "w-2/3", "w-4/5", "w-1/2"]}
+              />
+            </div>
           ) : errorMessage ? (
             <div className="space-y-2 border p-2 text-xs">
               <p className="text-destructive">{errorMessage}</p>

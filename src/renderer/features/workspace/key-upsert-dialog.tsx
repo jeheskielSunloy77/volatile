@@ -10,7 +10,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/renderer/components/ui/dialog'
-import { Input } from '@/renderer/components/ui/input'
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -18,6 +17,7 @@ import {
 	InputGroupTextarea,
 } from '@/renderer/components/ui/input-group'
 import { Label } from '@/renderer/components/ui/label'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 
 type KeyUpsertDialogProps = {
 	open: boolean
@@ -86,7 +86,12 @@ export const KeyUpsertDialog = ({
 				</DialogHeader>
 
 				{isLoading ? (
-					<p className='text-muted-foreground text-xs'>Loading key details...</p>
+					<div className='space-y-3 rounded-none border p-3'>
+						<LoadingSkeletonLines
+							count={3}
+							widths={['w-1/3', 'w-2/3', 'w-1/2']}
+						/>
+					</div>
 				) : errorMessage ? (
 					<div className='space-y-2 border p-2 text-xs'>
 						<p className='text-destructive'>{errorMessage}</p>

@@ -42,6 +42,7 @@ import {
 	DashboardChartCard,
 	DashboardStats,
 } from '@/renderer/components/ui/dashboard'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -967,9 +968,12 @@ export const WorkflowPanel = ({
 						</CardHeader>
 						<CardContent className="max-h-72 overflow-auto">
 							{executionsQuery.isLoading ? (
-								<p className="text-muted-foreground text-xs">
-									Loading executions...
-								</p>
+								<div className="space-y-2">
+									<LoadingSkeletonLines
+										count={4}
+										widths={["w-5/6", "w-2/3", "w-3/4", "w-1/2"]}
+									/>
+								</div>
 							) : (executionsQuery.data?.length ?? 0) === 0 ? (
 								<p className="text-muted-foreground text-xs">
 									No workflow executions yet.
@@ -1073,9 +1077,12 @@ export const WorkflowPanel = ({
 					</CardHeader>
 					<CardContent className="max-h-[32rem] space-y-2 overflow-auto">
 						{templatesQuery.isLoading ? (
-							<p className="text-muted-foreground text-xs">
-								Loading templates...
-							</p>
+							<div className="space-y-2">
+								<LoadingSkeletonLines
+									count={4}
+									widths={["w-5/6", "w-2/3", "w-3/4", "w-1/2"]}
+								/>
+							</div>
 						) : (templatesQuery.data?.length ?? 0) === 0 ? (
 							<p className="text-muted-foreground text-xs">
 								No workflow templates have been saved yet.

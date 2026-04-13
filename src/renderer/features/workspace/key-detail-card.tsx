@@ -1,5 +1,4 @@
 import {
-  FilePenLineIcon,
   InfoIcon,
   PencilLineIcon,
   Trash2Icon,
@@ -22,6 +21,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/renderer/components/ui/empty";
+import { LoadingSkeletonLines } from "@/renderer/components/ui/loading-skeleton";
 
 type KeyDetailCardProps = {
   keyName: string | null;
@@ -84,9 +84,11 @@ export const KeyDetailCard = ({
       </CardHeader>
       <CardContent className="flex h-full min-h-0 flex-col gap-3">
         {isLoading ? (
-          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <FilePenLineIcon className="size-3.5" />
-            Loading key details...
+          <div className="space-y-3 border p-3">
+            <LoadingSkeletonLines
+              count={4}
+              widths={["w-1/3", "w-1/2", "w-2/3", "w-1/4"]}
+            />
           </div>
         ) : errorMessage ? (
           <div className="space-y-2 border p-2 text-xs">
@@ -98,7 +100,7 @@ export const KeyDetailCard = ({
             )}
           </div>
         ) : !keyName ? (
-          <Empty className="bg-muted/50 rounded-lg">
+          <Empty className="bg-muted/50">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <InfoIcon />

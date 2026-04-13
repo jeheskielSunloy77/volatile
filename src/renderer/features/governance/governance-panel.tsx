@@ -33,6 +33,7 @@ import {
 	DashboardChartCard,
 	DashboardStats,
 } from '@/renderer/components/ui/dashboard'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import { Input } from '@/renderer/components/ui/input'
 import {
 	InputGroup,
@@ -642,7 +643,9 @@ export const GovernancePanel = ({
 					</div>
 
 					{assignmentsQuery.isLoading ? (
-						<p className='text-muted-foreground text-xs'>Loading assignment...</p>
+						<div className='space-y-2'>
+							<LoadingSkeletonLines count={2} widths={['w-1/2', 'w-1/3']} />
+						</div>
 					) : (
 						<p className='text-muted-foreground text-xs'>
 							Current assignment:{' '}

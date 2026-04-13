@@ -44,6 +44,7 @@ import {
 } from '@/renderer/components/ui/tabs'
 import { isWorkspaceStartupReady } from '@/renderer/app/startup-readiness'
 import { useStartupGateReady } from '@/renderer/app/startup-gate'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import {
 	RendererOperationError,
 	unwrapResponse,
@@ -692,11 +693,11 @@ export const WorkspacePage = () => {
 			{connectionsQuery.isLoading ? (
 				<div className='grid h-full place-items-center'>
 					<Card>
-						<CardContent className='p-6 text-xs text-muted-foreground'>
-							Loading workspace...
-						</CardContent>
-					</Card>
-				</div>
+						<CardContent className='space-y-3 p-6'>
+					<LoadingSkeletonLines count={3} widths={['w-1/2', 'w-2/3', 'w-1/3']} />
+				</CardContent>
+			</Card>
+		</div>
 			) : selectedConnection ? (
 				<div className='grid h-full min-h-0 gap-3'>
 					{capabilitiesError && activeTab === 'workspace' && (
@@ -1024,7 +1025,12 @@ export const WorkspacePage = () => {
 
 					<div className='max-h-72 space-y-2 overflow-auto'>
 						{snapshotsQuery.isLoading ? (
-							<p className='text-muted-foreground text-xs'>Loading snapshots...</p>
+							<div className='space-y-2'>
+								<LoadingSkeletonLines
+									count={4}
+									widths={['w-1/3', 'w-1/2', 'w-2/3', 'w-1/4']}
+								/>
+							</div>
 						) : (snapshotsQuery.data?.length ?? 0) === 0 ? (
 							<p className='text-muted-foreground text-xs'>
 								No snapshots were found for this key.

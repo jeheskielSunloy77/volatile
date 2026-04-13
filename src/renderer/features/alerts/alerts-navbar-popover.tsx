@@ -13,6 +13,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from '@/renderer/components/ui/empty'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import {
 	Popover,
 	PopoverContent,
@@ -150,7 +151,9 @@ export const AlertsNavbarPopover = () => {
 
 				<div className='max-h-80 space-y-1 overflow-auto'>
 					{unreadAlertsQuery.isLoading ? (
-						<p className='text-muted-foreground text-xs'>Loading unread alerts...</p>
+						<div className='space-y-2 p-1'>
+							<LoadingSkeletonLines count={3} widths={['w-5/6', 'w-2/3', 'w-4/5']} />
+						</div>
 					) : unreadAlertsQuery.isError ? (
 						<div className='space-y-2 p-1'>
 							<p className='text-destructive text-xs'>Unable to load unread alerts.</p>

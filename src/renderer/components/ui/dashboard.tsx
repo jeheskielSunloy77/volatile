@@ -7,6 +7,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/renderer/components/ui/card'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import { cn } from '@/renderer/lib/utils'
 
 type DashboardStatItem = {
@@ -90,7 +91,9 @@ export const DashboardChartCard = ({
 		</CardHeader>
 		<CardContent className={cn('min-h-[18rem]', contentClassName)}>
 			{loading ? (
-				<p className='text-muted-foreground text-xs'>Loading chart...</p>
+				<div className='space-y-3'>
+					<LoadingSkeletonLines count={4} widths={['w-5/6', 'w-2/3', 'w-3/4', 'w-1/2']} />
+				</div>
 			) : error ? (
 				<p className='text-destructive text-xs'>{error}</p>
 			) : empty ? (

@@ -42,6 +42,7 @@ import {
 	SelectValue,
 } from '@/renderer/components/ui/select'
 import { Switch } from '@/renderer/components/ui/switch'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import type {
 	CacheEngine,
@@ -719,7 +720,9 @@ export const ConnectionFormDialog = ({
 					</div>
 
 					{isLoadingNamespaces && (
-						<p className='text-muted-foreground text-xs'>Loading namespaces...</p>
+						<div className='space-y-2'>
+							<LoadingSkeletonLines count={2} widths={['w-2/3', 'w-1/2']} />
+						</div>
 					)}
 
 					{namespaceRows.length === 0 && !isLoadingNamespaces && (

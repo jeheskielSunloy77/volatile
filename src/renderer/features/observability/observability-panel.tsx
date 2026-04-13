@@ -40,6 +40,7 @@ import {
 	DashboardSection,
 	DashboardStats,
 } from '@/renderer/components/ui/dashboard'
+import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
 import { Input } from '@/renderer/components/ui/input'
 import {
 	InputGroup,
@@ -878,9 +879,12 @@ export const ObservabilityPanel = ({
 										</CardHeader>
 										<CardContent className="grid gap-3 md:grid-cols-2">
 											{dashboardQuery.isLoading ? (
-												<p className="text-muted-foreground text-xs">
-													Loading connection health...
-												</p>
+												<div className="space-y-3 md:col-span-2">
+													<LoadingSkeletonLines
+														count={4}
+														widths={["w-5/6", "w-2/3", "w-3/4", "w-1/2"]}
+													/>
+												</div>
 											) : (dashboard?.health ?? []).length === 0 ? (
 												<p className="text-muted-foreground text-xs">
 													No connection health records found.
@@ -1099,9 +1103,9 @@ export const ObservabilityPanel = ({
 								</div>
 
 								{failedQuery.isLoading ? (
-									<p className="text-muted-foreground text-xs">
-										Loading diagnostics...
-									</p>
+									<div className="space-y-2">
+										<LoadingSkeletonLines count={3} widths={["w-3/4", "w-2/3", "w-1/2"]} />
+									</div>
 								) : failedQuery.isError ? (
 									<p className="text-destructive text-xs">
 										{failedQuery.error instanceof Error
@@ -1500,9 +1504,12 @@ export const ObservabilityPanel = ({
 						<div className="space-y-2">
 							<p className="text-xs font-medium">Recent Incident Bundles</p>
 							{incidentBundlesQuery.isLoading ? (
-								<p className="text-muted-foreground text-xs">
-									Loading incident bundles...
-								</p>
+								<div className="space-y-2">
+									<LoadingSkeletonLines
+										count={3}
+										widths={["w-5/6", "w-2/3", "w-3/4"]}
+									/>
+								</div>
 							) : (incidentBundlesQuery.data?.length ?? 0) === 0 ? (
 								<p className="text-muted-foreground text-xs">
 									No incident bundles exported yet.
