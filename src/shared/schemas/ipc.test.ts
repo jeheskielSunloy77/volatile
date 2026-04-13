@@ -169,6 +169,16 @@ describe('commandEnvelopeSchema', () => {
     expect(parsed.command).toBe('alert.markAllRead')
   })
 
+  it('accepts delete-all-alerts commands', () => {
+    const parsed = commandEnvelopeSchema.parse({
+      command: 'alert.deleteAll',
+      correlationId: 'alert-delete-all-1',
+      payload: {},
+    })
+
+    expect(parsed.command).toBe('alert.deleteAll')
+  })
+
   it('rejects governance policy packs with invalid execution windows', () => {
     expect(() =>
       commandEnvelopeSchema.parse({

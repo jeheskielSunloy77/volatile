@@ -210,6 +210,9 @@ export interface DesktopApi {
 	markAllAlertsRead: () => Promise<
 		IpcResponseEnvelope<CommandResultMap['alert.markAllRead']>
 	>
+	deleteAllAlerts: () => Promise<
+		IpcResponseEnvelope<CommandResultMap['alert.deleteAll']>
+	>
 	listAlertRules: () => Promise<
 		IpcResponseEnvelope<QueryResultMap['alert.rule.list']>
 	>

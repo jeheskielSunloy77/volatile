@@ -356,6 +356,16 @@ describeSqlite('sqlite persistence v2', () => {
 
 		const unreadCountAfterMarkAll = await alertRepository.countUnread()
 		expect(unreadCountAfterMarkAll).toBe(0)
+
+		await alertRepository.deleteAll()
+
+		const alertsAfterDelete = await alertRepository.list({
+			unreadOnly: false,
+			limit: 10,
+		})
+
+		expect(alertsAfterDelete).toHaveLength(0)
+		expect(await alertRepository.countUnread()).toBe(0)
 	})
 
 	it('stores v3 governance, alert rule, incident, and retention entities', async () => {

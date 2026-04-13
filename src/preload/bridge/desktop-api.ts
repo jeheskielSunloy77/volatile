@@ -117,6 +117,7 @@ export const desktopApi: DesktopApi = {
 	getUnreadAlertCount: () => invokeQuery('alert.unread.count', {}),
 	markAlertRead: (payload) => invokeCommand('alert.markRead', payload),
 	markAllAlertsRead: () => invokeCommand('alert.markAllRead', {}),
+	deleteAllAlerts: () => invokeCommand('alert.deleteAll', {}),
 	listAlertRules: () => invokeQuery('alert.rule.list', {}),
 	createAlertRule: (payload) => invokeCommand('alert.rule.create', payload),
 	updateAlertRule: (payload) => invokeCommand('alert.rule.update', payload),

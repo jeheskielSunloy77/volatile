@@ -1730,6 +1730,8 @@ export class SqliteAlertRepository implements AlertRepository {
 
   private readonly markAllReadStatement: BetterSqlite3.Statement<[]>
 
+  private readonly deleteAllStatement: BetterSqlite3.Statement<[]>
+
   public constructor(private readonly db: BetterSqlite3.Database) {
     this.insertStatement = this.db.prepare(`
       INSERT INTO alert_events (
@@ -1775,6 +1777,8 @@ export class SqliteAlertRepository implements AlertRepository {
     this.markAllReadStatement = this.db.prepare(
       'UPDATE alert_events SET is_read = 1 WHERE is_read = 0',
     )
+
+    this.deleteAllStatement = this.db.prepare('DELETE FROM alert_events')
   }
 
   public async append(event: AlertEvent): Promise<void> {
@@ -1808,6 +1812,10 @@ export class SqliteAlertRepository implements AlertRepository {
 
   public async markAllRead(): Promise<void> {
     this.markAllReadStatement.run()
+  }
+
+  public async deleteAll(): Promise<void> {
+    this.deleteAllStatement.run()
   }
 }
 

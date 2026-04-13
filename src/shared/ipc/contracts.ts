@@ -105,6 +105,7 @@ export type AppCommand =
 	| 'workflow.resume'
 	| 'alert.markRead'
 	| 'alert.markAllRead'
+	| 'alert.deleteAll'
 	| 'alert.rule.create'
 	| 'alert.rule.update'
 	| 'alert.rule.delete'
@@ -168,6 +169,7 @@ export interface CommandPayloadMap {
 	'workflow.resume': WorkflowResumeRequest
 	'alert.markRead': AlertMarkReadRequest
 	'alert.markAllRead': AlertMarkAllReadRequest
+	'alert.deleteAll': Record<string, never>
 	'alert.rule.create': AlertRuleCreateRequest
 	'alert.rule.update': AlertRuleUpdateRequest
 	'alert.rule.delete': AlertRuleDeleteRequest
@@ -233,6 +235,7 @@ export interface CommandResultMap {
 	'workflow.resume': WorkflowExecutionRecord
 	'alert.markRead': MutationResult
 	'alert.markAllRead': MutationResult
+	'alert.deleteAll': MutationResult
 	'alert.rule.create': AlertRule
 	'alert.rule.update': AlertRule
 	'alert.rule.delete': MutationResult

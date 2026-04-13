@@ -573,6 +573,8 @@ const alertMarkReadPayloadSchema = z
 
 const alertMarkAllReadPayloadSchema = z.object({}).strict()
 
+const alertDeleteAllPayloadSchema = z.object({}).strict()
+
 const alertUnreadCountPayloadSchema = z.object({}).strict()
 
 const governanceAssignmentListPayloadSchema = z
@@ -712,6 +714,13 @@ export const commandEnvelopeSchema = z.discriminatedUnion('command', [
     .object({
       command: z.literal('alert.markAllRead'),
       payload: alertMarkAllReadPayloadSchema,
+      correlationId: correlationIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      command: z.literal('alert.deleteAll'),
+      payload: alertDeleteAllPayloadSchema,
       correlationId: correlationIdSchema,
     })
     .strict(),

@@ -130,28 +130,52 @@
 
 @layer components {
 	.json-token-punctuation {
-		color: #6272a4;
+		color: oklch(0.556 0 0);
 	}
 
 	.json-token-key {
-		color: #ff79c6;
+		color: oklch(0.45 0.18 264);
 		font-weight: 600;
 	}
 
 	.json-token-string {
-		color: #f1fa8c;
+		color: oklch(0.48 0.12 142);
 	}
 
 	.json-token-number {
-		color: #bd93f9;
+		color: oklch(0.52 0.18 275);
 	}
 
 	.json-token-boolean {
-		color: #8be9fd;
+		color: oklch(0.43 0.12 236);
 	}
 
 	.json-token-null {
-		color: #6272a4;
+		color: oklch(0.556 0 0);
 		font-style: italic;
+	}
+
+	.dark .json-token-punctuation {
+		color: #6272a4;
+	}
+
+	.dark .json-token-key {
+		color: #ff79c6;
+	}
+
+	.dark .json-token-string {
+		color: #f1fa8c;
+	}
+
+	.dark .json-token-number {
+		color: #bd93f9;
+	}
+
+	.dark .json-token-boolean {
+		color: #8be9fd;
+	}
+
+	.dark .json-token-null {
+		color: #6272a4;
 	}
 }

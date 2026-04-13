@@ -101,6 +101,8 @@ const handleCommand = async (
 			return service.markAlertRead(envelope.payload)
 		case 'alert.markAllRead':
 			return service.markAllAlertsRead(envelope.payload)
+		case 'alert.deleteAll':
+			return service.deleteAllAlerts()
 		case 'alert.rule.create':
 			return service.createAlertRule(envelope.payload)
 		case 'alert.rule.update':

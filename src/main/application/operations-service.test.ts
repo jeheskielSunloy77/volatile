@@ -845,6 +845,61 @@ describe('OperationsService', () => {
 		expect(unreadAfterMarkAll.unreadCount).toBe(0)
 	})
 
+	it('supports deleting all alerts', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const gateway = createGatewayMock()
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'alert-delete-all-1',
+			secretRef: 'alert-delete-all-1',
+			forceReadOnly: true,
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		await expect(
+			service.setKey({
+				connectionId: profile.id,
+				key: 'alert:key:1',
+				value: 'value',
+			}),
+		).rejects.toBeInstanceOf(OperationFailure)
+		await expect(
+			service.setKey({
+				connectionId: profile.id,
+				key: 'alert:key:2',
+				value: 'value',
+			}),
+		).rejects.toBeInstanceOf(OperationFailure)
+
+		const unreadBeforeDelete = await service.getUnreadAlertCount()
+		expect(unreadBeforeDelete.unreadCount).toBeGreaterThanOrEqual(2)
+
+		await expect(service.deleteAllAlerts()).resolves.toEqual({
+			success: true,
+		})
+
+		const alertsAfterDelete = await service.listAlerts({
+			limit: 20,
+			unreadOnly: false,
+		})
+		expect(alertsAfterDelete).toHaveLength(0)
+
+		const unreadAfterDelete = await service.getUnreadAlertCount()
+		expect(unreadAfterDelete.unreadCount).toBe(0)
+	})
+
 	it('supports alert rule CRUD and emits rule-triggered alerts', async () => {
 		const repository = new InMemoryConnectionRepository()
 		const secretStore = new InMemorySecretStore()

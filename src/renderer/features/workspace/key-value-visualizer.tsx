@@ -67,7 +67,7 @@ const JsonPrettyRenderer = ({ value }: { value: unknown }) => {
 	const lines = React.useMemo(() => formatJsonForHighlight(value), [value])
 
 	return (
-		<pre className='bg-muted/40 whitespace-pre-wrap break-all rounded-none p-2 text-xs'>
+		<pre className='border-border/60 bg-muted/60 whitespace-pre-wrap break-all rounded-none border p-2 text-xs'>
 			{lines.map((line, lineIndex) => (
 				<React.Fragment key={`line-${lineIndex}`}>
 					{line.map((segment, segmentIndex) => (
@@ -264,7 +264,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 
 			<div className='min-h-0 flex-1 overflow-auto'>
 				{activeType === 'raw' && (
-					<pre className='bg-muted/40 h-full whitespace-pre-wrap break-all rounded-none p-2 text-xs'>
+					<pre className='border-border/60 bg-muted/60 h-full whitespace-pre-wrap break-all rounded-none border p-2 text-xs'>
 						{rawValue || '(empty)'}
 					</pre>
 				)}
@@ -273,7 +273,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 					jsonParsed.error ? (
 						<div className='space-y-2 text-xs'>
 							<p className='text-destructive'>Unable to parse JSON: {jsonParsed.error}</p>
-							<pre className='bg-muted/40 whitespace-pre-wrap break-all rounded-none p-2'>
+							<pre className='border-border/60 bg-muted/60 whitespace-pre-wrap break-all rounded-none border p-2'>
 								{rawValue || '(empty)'}
 							</pre>
 						</div>

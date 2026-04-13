@@ -112,6 +112,7 @@ export interface AlertRepository {
   countUnread: () => Promise<number>
   markRead: (id: string) => Promise<void>
   markAllRead: () => Promise<void>
+  deleteAll: () => Promise<void>
 }
 
 export interface AlertRuleRepository {

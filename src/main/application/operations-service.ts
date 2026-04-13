@@ -450,6 +450,10 @@ class InMemoryAlertRepository implements AlertRepository {
 			})
 		}
 	}
+
+	public async deleteAll(): Promise<void> {
+		this.events.clear()
+	}
 }
 
 class InMemoryAlertRuleRepository implements AlertRuleRepository {
@@ -1765,6 +1769,14 @@ export class OperationsService {
 	): Promise<MutationResult> {
 		void payload
 		await this.alertRepository.markAllRead()
+
+		return {
+			success: true,
+		}
+	}
+
+	public async deleteAllAlerts(): Promise<MutationResult> {
+		await this.alertRepository.deleteAll()
 
 		return {
 			success: true,
