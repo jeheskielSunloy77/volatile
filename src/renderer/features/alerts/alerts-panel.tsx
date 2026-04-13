@@ -32,6 +32,13 @@ import {
   CardTitle,
 } from "@/renderer/components/ui/card";
 import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/renderer/components/ui/empty";
+import {
   ChartConfig,
   ChartContainer,
   ChartLegend,
@@ -383,9 +390,20 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
                 : undefined
             }
             empty={
-              severityData.length === 0
-                ? "No alert data to visualize."
-                : undefined
+              severityData.length === 0 ? (
+                <Empty className="bg-muted/50 min-h-[220px]">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <ChartColumnBigIcon className="size-4" />
+                    </EmptyMedia>
+                    <EmptyTitle>No alert data to visualize</EmptyTitle>
+                    <EmptyDescription>
+                      Alert severity will appear here once the feed contains
+                      events.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : undefined
             }
           >
             <ChartContainer
@@ -426,9 +444,19 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
                 : undefined
             }
             empty={
-              ruleMetricData.every((item) => item.rules === 0)
-                ? "No alert rules configured yet."
-                : undefined
+              ruleMetricData.every((item) => item.rules === 0) ? (
+                <Empty className="bg-muted/50 min-h-[220px]">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <ShieldAlertIcon className="size-4" />
+                    </EmptyMedia>
+                    <EmptyTitle>No alert rules configured yet</EmptyTitle>
+                    <EmptyDescription>
+                      Create a rule to start tracking operational signals.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : undefined
             }
           >
             <ChartContainer
@@ -684,9 +712,17 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
 
               <div className="max-h-56 space-y-2 overflow-auto border p-2">
                 {(rulesQuery.data?.length ?? 0) === 0 ? (
-                  <p className="text-muted-foreground text-xs">
-                    No alert rules configured yet.
-                  </p>
+                  <Empty className="bg-muted/50 min-h-[160px]">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <ShieldAlertIcon className="size-4" />
+                      </EmptyMedia>
+                      <EmptyTitle>No alert rules configured yet</EmptyTitle>
+                      <EmptyDescription>
+                        Create a rule to start tracking operational signals.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 ) : (
                   rulesQuery.data?.map((rule) => (
                     <button
@@ -764,9 +800,21 @@ export const AlertsPanel = ({ connection }: AlertsPanelProps) => {
                   />
                 </div>
               ) : (alertsQuery.data?.length ?? 0) === 0 ? (
-                <p className="text-muted-foreground text-xs">
-                  No alerts to display.
-                </p>
+                <Empty className="bg-muted/50 min-h-96">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <BellRingIcon className="size-4" />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                      {unreadOnly ? "No unread alerts" : "No alerts found"}
+                    </EmptyTitle>
+                    <EmptyDescription>
+                      {unreadOnly
+                        ? "Everything in this workspace has already been acknowledged."
+                        : "There are no alerts in this workspace yet."}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               ) : (
                 alertsQuery.data?.map((alert) => (
                   <div key={alert.id} className="space-y-2 border p-2 text-xs">

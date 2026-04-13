@@ -84,22 +84,24 @@ export const DashboardChartCard = ({
 	className,
 	contentClassName,
 }: DashboardChartCardProps) => (
-	<Card className={cn('min-h-0 rounded-none border shadow-none', className)}>
+	<Card className={cn('h-full min-h-0 rounded-none border shadow-none', className)}>
 		<CardHeader className='pb-2'>
 			<CardTitle>{title}</CardTitle>
 			{description ? <CardDescription>{description}</CardDescription> : null}
 		</CardHeader>
-		<CardContent className={cn('min-h-[18rem]', contentClassName)}>
+		<CardContent className={cn('flex h-full min-h-[18rem] flex-col', contentClassName)}>
 			{loading ? (
-				<div className='space-y-3'>
+				<div className='flex min-h-0 flex-1 flex-col justify-center space-y-3'>
 					<LoadingSkeletonLines count={4} widths={['w-5/6', 'w-2/3', 'w-3/4', 'w-1/2']} />
 				</div>
 			) : error ? (
-				<p className='text-destructive text-xs'>{error}</p>
+				<div className='flex min-h-0 flex-1 items-center justify-center'>
+					<p className='text-destructive text-xs'>{error}</p>
+				</div>
 			) : empty ? (
-				<p className='text-muted-foreground text-xs'>{empty}</p>
+				<div className='flex min-h-0 flex-1 flex-col'>{empty}</div>
 			) : (
-				children
+				<div className='min-h-0 flex-1'>{children}</div>
 			)}
 		</CardContent>
 	</Card>
