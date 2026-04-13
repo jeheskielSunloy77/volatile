@@ -27,8 +27,12 @@ import {
 	type VisualizerDataType,
 } from '@/renderer/features/workspace/key-value-visualizer-utils'
 
-type VisualizerMode = 'auto' | VisualizerDataType
-type JsonRenderMode = 'structured' | 'pretty'
+type CombinedVisualizerMode =
+	| 'auto'
+	| 'raw'
+	| 'json-structured'
+	| 'json-pretty'
+	| 'dsv'
 
 type KeyValueVisualizerProps = {
 	keyId: string | null
@@ -147,9 +151,7 @@ const JsonTreeNode = ({
 export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) => {
 	const rawValue = value ?? ''
 	const detection = React.useMemo(() => detectValueStructure(rawValue), [rawValue])
-	const [mode, setMode] = React.useState<VisualizerMode>('auto')
-	const [jsonRenderMode, setJsonRenderMode] =
-		React.useState<JsonRenderMode>('pretty')
+	const [mode, setMode] = React.useState<CombinedVisualizerMode>('auto')
 	const [delimiterInput, setDelimiterInput] = React.useState(',')
 	const [hasHeader, setHasHeader] = React.useState(false)
 
@@ -163,11 +165,16 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 
 		setDelimiterInput(',')
 		setHasHeader(false)
-		setJsonRenderMode('pretty')
 	}, [keyId, rawValue, detection])
 
 	const activeType: VisualizerDataType =
-		mode === 'auto' ? detection.type : mode
+		mode === 'auto'
+			? detection.type
+			: mode === 'json-structured' || mode === 'json-pretty'
+				? 'json'
+				: mode
+	const jsonRenderMode =
+		mode === 'json-structured' ? 'structured' : 'pretty'
 	const autoModeLabel =
 		detection.type === 'json'
 			? 'Auto (JSON)'
@@ -197,11 +204,11 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 			? autoModeLabel
 			: mode === 'raw'
 				? 'Raw'
-				: mode === 'json'
-					? 'JSON'
+				: mode === 'json-structured'
+					? 'JSON (structured)'
+					: mode === 'json-pretty'
+						? 'JSON (pretty)'
 					: 'Delimiter-separated'
-	const jsonViewLabel =
-		jsonRenderMode === 'structured' ? 'Structured' : 'Pretty JSON'
 
 	return (
 		<div className='border-border flex h-full min-h-0 flex-col gap-3 border p-2'>
@@ -210,7 +217,7 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 					<span className='text-muted-foreground'>View</span>
 					<Select
 						value={mode}
-						onValueChange={(value) => setMode(value as VisualizerMode)}
+						onValueChange={(value) => setMode(value as CombinedVisualizerMode)}
 					>
 						<SelectTrigger className='w-44'>
 							<SelectValue>{visualizerModeLabel}</SelectValue>
@@ -218,28 +225,12 @@ export const KeyValueVisualizer = ({ keyId, value }: KeyValueVisualizerProps) =>
 						<SelectContent>
 							<SelectItem value='auto'>{autoModeLabel}</SelectItem>
 							<SelectItem value='raw'>Raw</SelectItem>
-							<SelectItem value='json'>JSON</SelectItem>
+							<SelectItem value='json-structured'>JSON (structured)</SelectItem>
+							<SelectItem value='json-pretty'>JSON (pretty)</SelectItem>
 							<SelectItem value='dsv'>Delimiter-separated</SelectItem>
 						</SelectContent>
 					</Select>
 				</label>
-				{(activeType === 'json' || mode === 'json') && (
-					<label className='flex items-center gap-1'>
-						<span className='text-muted-foreground'>JSON view</span>
-						<Select
-							value={jsonRenderMode}
-							onValueChange={(value) => setJsonRenderMode(value as JsonRenderMode)}
-						>
-							<SelectTrigger className='w-36'>
-								<SelectValue>{jsonViewLabel}</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value='structured'>Structured</SelectItem>
-								<SelectItem value='pretty'>Pretty JSON</SelectItem>
-							</SelectContent>
-						</Select>
-					</label>
-				)}
 				{(activeType === 'dsv' || mode === 'dsv') && (
 					<>
 						<label className='flex items-center gap-1'>
