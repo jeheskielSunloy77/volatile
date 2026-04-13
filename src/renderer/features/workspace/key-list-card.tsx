@@ -1,5 +1,6 @@
 import {
   FilePenLineIcon,
+  KeyRoundIcon,
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
@@ -14,6 +15,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/renderer/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/renderer/components/ui/empty";
 import { Input } from "@/renderer/components/ui/input";
 import { Separator } from "@/renderer/components/ui/separator";
 import { LoadingSkeletonLines } from "@/renderer/components/ui/loading-skeleton";
@@ -118,7 +126,7 @@ export const KeyListCard = ({
 
         <Separator />
 
-        <div className="no-scrollbar min-h-0 flex-1 space-y-1 overflow-auto">
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-1 overflow-auto">
           {isLoading ? (
             <div className="space-y-2 p-2">
               <LoadingSkeletonLines
@@ -136,9 +144,19 @@ export const KeyListCard = ({
               )}
             </div>
           ) : keys.length === 0 ? (
-            <p className="text-muted-foreground p-2 text-xs">
-              No keys found for this query.
-            </p>
+            <Empty className="bg-muted/50 min-h-0 flex-1">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <KeyRoundIcon className="size-4" />
+                </EmptyMedia>
+                <EmptyTitle>No keys found</EmptyTitle>
+                <EmptyDescription>
+                  {searchPattern.trim().length > 0
+                    ? "Try a broader pattern or clear the search to inspect every key in the workspace."
+                    : "This namespace does not have any keys yet."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             keys.map((key) => {
               const namespaceName = getNamespaceBadge?.(key);
