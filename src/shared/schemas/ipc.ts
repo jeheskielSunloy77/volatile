@@ -221,12 +221,91 @@ const keyGetPayloadSchema = z
   })
   .strict()
 
+const redisStringValueSchema = z
+  .object({
+    kind: z.literal('string'),
+    value: z.string(),
+  })
+  .strict()
+
+const redisHashValueSchema = z
+  .object({
+    kind: z.literal('hash'),
+    entries: z.array(
+      z
+        .object({
+          field: z.string(),
+          value: z.string(),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+
+const redisListValueSchema = z
+  .object({
+    kind: z.literal('list'),
+    items: z.array(z.string()),
+  })
+  .strict()
+
+const redisSetValueSchema = z
+  .object({
+    kind: z.literal('set'),
+    members: z.array(z.string()),
+  })
+  .strict()
+
+const redisZsetValueSchema = z
+  .object({
+    kind: z.literal('zset'),
+    entries: z.array(
+      z
+        .object({
+          member: z.string(),
+          score: z.number().finite(),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+
+const redisStreamValueSchema = z
+  .object({
+    kind: z.literal('stream'),
+    entries: z.array(
+      z
+        .object({
+          fields: z.array(
+            z
+              .object({
+                field: z.string(),
+                value: z.string(),
+              })
+              .strict(),
+          ),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+
+const keyValueInputSchema = z.union([
+  z.string(),
+  redisStringValueSchema,
+  redisHashValueSchema,
+  redisListValueSchema,
+  redisSetValueSchema,
+  redisZsetValueSchema,
+  redisStreamValueSchema,
+])
+
 const keySetPayloadSchema = z
   .object({
     connectionId: idSchema,
     namespaceId: idSchema.optional(),
     key: z.string().min(1),
-    value: z.string(),
+    value: keyValueInputSchema,
     ttlSeconds: z.number().int().min(1).max(31536000).optional(),
   })
   .strict()

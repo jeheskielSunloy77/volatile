@@ -103,6 +103,44 @@ describe('commandEnvelopeSchema', () => {
     expect(parsed.command).toBe('workflow.execute')
   })
 
+  it('accepts typed key.set payloads for Redis structures', () => {
+    const parsed = commandEnvelopeSchema.parse({
+      command: 'key.set',
+      correlationId: 'key-set-typed-1',
+      payload: {
+        connectionId: 'conn-1',
+        key: 'leaderboard',
+        value: {
+          kind: 'zset',
+          entries: [
+            { member: 'alice', score: 10 },
+            { member: 'bob', score: 4.5 },
+          ],
+        },
+        ttlSeconds: 60,
+      },
+    })
+
+    expect(parsed.command).toBe('key.set')
+  })
+
+  it('rejects typed key.set payloads with invalid numeric scores', () => {
+    expect(() =>
+      commandEnvelopeSchema.parse({
+        command: 'key.set',
+        correlationId: 'key-set-typed-2',
+        payload: {
+          connectionId: 'conn-1',
+          key: 'leaderboard',
+          value: {
+            kind: 'zset',
+            entries: [{ member: 'alice', score: Number.NaN }],
+          },
+        },
+      }),
+    ).toThrowError()
+  })
+
   it('rejects workflow execute payloads with no template source', () => {
     expect(() =>
       commandEnvelopeSchema.parse({

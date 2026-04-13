@@ -4,6 +4,15 @@ export type CacheEngine =
   | 'dragonfly'
   | 'valkey'
   | 'memcached'
+export type RedisKeyType =
+  | 'string'
+  | 'list'
+  | 'set'
+  | 'zset'
+  | 'hash'
+  | 'stream'
+  | 'none'
+  | 'unknown'
 export type NamespaceStrategy = 'redisLogicalDb' | 'keyPrefix'
 export type EnvironmentTag = 'dev' | 'staging' | 'prod'
 export type EventSource = 'app' | 'engine'
@@ -238,7 +247,32 @@ export interface KeySetRequest {
   connectionId: string
   namespaceId?: string
   key: string
-  value: string
+  value:
+    | string
+    | {
+        kind: 'string'
+        value: string
+      }
+    | {
+        kind: 'hash'
+        entries: Array<{ field: string; value: string }>
+      }
+    | {
+        kind: 'list'
+        items: string[]
+      }
+    | {
+        kind: 'set'
+        members: string[]
+      }
+    | {
+        kind: 'zset'
+        entries: Array<{ member: string; score: number }>
+      }
+    | {
+        kind: 'stream'
+        entries: Array<{ fields: Array<{ field: string; value: string }> }>
+      }
   ttlSeconds?: number
 }
 
@@ -264,7 +298,7 @@ export interface KeyValueRecord {
   value: string | null
   ttlSeconds: number | null
   supportsTTL: boolean
-  keyType?: 'string' | 'list' | 'set' | 'zset' | 'hash' | 'stream' | 'none' | 'unknown'
+  keyType?: RedisKeyType
   isStringEditable?: boolean
 }
 

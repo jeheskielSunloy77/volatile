@@ -1,8 +1,4 @@
-import {
-  InfoIcon,
-  PencilLineIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { InfoIcon, PencilLineIcon, Trash2Icon } from "lucide-react";
 
 import { Badge } from "@/renderer/components/ui/badge";
 import { Button } from "@/renderer/components/ui/button";
@@ -28,7 +24,6 @@ type KeyDetailCardProps = {
   value: string | null;
   ttlSeconds: number | null;
   keyType?: string;
-  isStringEditable?: boolean;
   readOnly: boolean;
   supportsTTL: boolean;
   isLoading: boolean;
@@ -46,7 +41,6 @@ export const KeyDetailCard = ({
   value,
   ttlSeconds,
   keyType,
-  isStringEditable,
   readOnly,
   supportsTTL,
   isLoading,
@@ -74,7 +68,7 @@ export const KeyDetailCard = ({
               variant="outline"
               size="sm"
               onClick={onEdit}
-              disabled={!keyName || readOnly || isStringEditable === false}
+              disabled={!keyName || readOnly}
             >
               <PencilLineIcon className="size-3.5" />
               Edit
@@ -122,12 +116,6 @@ export const KeyDetailCard = ({
               {supportsTTL && (
                 <p className="text-muted-foreground">
                   TTL seconds: {ttlSeconds ?? "no expiration"}
-                </p>
-              )}
-              {isStringEditable === false && (
-                <p className="text-muted-foreground">
-                  This key uses a non-string Redis type and cannot be edited
-                  with string upsert.
                 </p>
               )}
             </div>

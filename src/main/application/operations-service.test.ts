@@ -274,6 +274,59 @@ describe('OperationsService', () => {
 		expect(setValueMock).not.toHaveBeenCalled()
 	})
 
+	it('passes typed Redis key payloads through to the cache gateway', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const setValueMock = vi.fn(async () => undefined)
+		const gateway = createGatewayMock({ setValue: setValueMock })
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'typed-write-1',
+			secretRef: 'typed-write-1',
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		await service.setKey({
+			connectionId: profile.id,
+			key: 'user:123',
+			value: {
+				kind: 'hash',
+				entries: [
+					{ field: 'id', value: '123' },
+					{ field: 'status', value: 'active' },
+				],
+			},
+			ttlSeconds: 60,
+		})
+
+		expect(setValueMock).toHaveBeenCalledWith(
+			expect.any(Object),
+			expect.any(Object),
+			{
+				key: 'user:123',
+				value: {
+					kind: 'hash',
+					entries: [
+						{ field: 'id', value: '123' },
+						{ field: 'status', value: 'active' },
+					],
+				},
+				ttlSeconds: 60,
+			},
+		)
+	})
+
 	it('rolls back metadata when secret storage fails during create', async () => {
 		const repository = new InMemoryConnectionRepository()
 		const memcachedIndex = new InMemoryMemcachedIndexRepository()

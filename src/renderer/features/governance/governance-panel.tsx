@@ -34,6 +34,7 @@ import {
 	DashboardStats,
 } from '@/renderer/components/ui/dashboard'
 import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
+import { JsonEditor } from '@/renderer/components/ui/json-editor'
 import { Input } from '@/renderer/components/ui/input'
 import {
 	InputGroup,
@@ -56,7 +57,6 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/renderer/components/ui/table'
-import { Textarea } from '@/renderer/components/ui/textarea'
 import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import type {
@@ -902,17 +902,17 @@ export const GovernancePanel = ({
 
 					<div className='space-y-1.5'>
 						<Label htmlFor='policy-pack-windows'>Execution Windows (JSON)</Label>
-						<Textarea
+						<JsonEditor
 							id='policy-pack-windows'
-							className='min-h-32 font-mono'
 							value={policyPackForm.executionWindowsText}
-							onChange={(event) =>
+							onChange={(value) =>
 								setPolicyPackForm((current) => ({
 									...current,
-									executionWindowsText: event.target.value,
+									executionWindowsText: value,
 								}))
 							}
 							disabled={!policyPackForm.schedulingEnabled}
+							minHeightClassName='min-h-32'
 						/>
 					</div>
 

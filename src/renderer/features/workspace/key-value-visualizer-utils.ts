@@ -258,6 +258,198 @@ const formatJsonTokenValue = (
 export const formatJsonForHighlight = (value: unknown): JsonTokenLine[] =>
 	formatJsonTokenValue(value, 0)
 
+type JsonTokenizerContext = {
+	kind: 'object' | 'array'
+	expectKey: boolean
+}
+
+const isDigit = (value: string): boolean => value >= '0' && value <= '9'
+
+const readJsonString = (value: string, startIndex: number): number => {
+	let index = startIndex + 1
+	let escaped = false
+
+	while (index < value.length) {
+		const character = value[index]
+		if (character === '\n') {
+			return index
+		}
+
+		if (escaped) {
+			escaped = false
+			index += 1
+			continue
+		}
+
+		if (character === '\\') {
+			escaped = true
+			index += 1
+			continue
+		}
+
+		if (character === '"') {
+			return index + 1
+		}
+
+		index += 1
+	}
+
+	return index
+}
+
+const readJsonNumber = (value: string, startIndex: number): number | null => {
+	const match = value.slice(startIndex).match(
+		/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/,
+	)
+	return match ? startIndex + match[0].length : null
+}
+
+const readJsonLiteral = (value: string, startIndex: number): number | null => {
+	for (const literal of ['true', 'false', 'null']) {
+		if (value.startsWith(literal, startIndex)) {
+			return startIndex + literal.length
+		}
+	}
+
+	return null
+}
+
+const pushToken = (
+	lines: JsonTokenLine[],
+	text: string,
+	kind: JsonTokenKind,
+): void => {
+	if (text.length === 0) {
+		return
+	}
+
+	lines[lines.length - 1].push({ text, kind })
+}
+
+const startNewLine = (lines: JsonTokenLine[]): void => {
+	lines.push([])
+}
+
+export const tokenizeJsonForHighlight = (value: string): JsonTokenLine[] => {
+	const lines: JsonTokenLine[] = [[]]
+	const contexts: JsonTokenizerContext[] = []
+
+	let index = 0
+	while (index < value.length) {
+		const character = value[index]
+
+		if (character === '\r') {
+			index += 1
+			continue
+		}
+
+		if (character === '\n') {
+			startNewLine(lines)
+			index += 1
+			continue
+		}
+
+		if (character === ' ' || character === '\t' || character === '\f') {
+			const start = index
+			while (
+				index < value.length &&
+				(value[index] === ' ' || value[index] === '\t' || value[index] === '\f')
+			) {
+				index += 1
+			}
+			pushToken(lines, value.slice(start, index), 'punctuation')
+			continue
+		}
+
+		if (character === '{') {
+			pushToken(lines, character, 'punctuation')
+			contexts.push({ kind: 'object', expectKey: true })
+			index += 1
+			continue
+		}
+
+		if (character === '}') {
+			pushToken(lines, character, 'punctuation')
+			contexts.pop()
+			index += 1
+			continue
+		}
+
+		if (character === '[') {
+			pushToken(lines, character, 'punctuation')
+			contexts.push({ kind: 'array', expectKey: false })
+			index += 1
+			continue
+		}
+
+		if (character === ']') {
+			pushToken(lines, character, 'punctuation')
+			contexts.pop()
+			index += 1
+			continue
+		}
+
+		if (character === ':') {
+			pushToken(lines, character, 'punctuation')
+			index += 1
+			continue
+		}
+
+		if (character === ',') {
+			pushToken(lines, character, 'punctuation')
+			const currentContext = contexts[contexts.length - 1]
+			if (currentContext?.kind === 'object') {
+				currentContext.expectKey = true
+			}
+			index += 1
+			continue
+		}
+
+		if (character === '"') {
+			const endIndex = readJsonString(value, index)
+			const tokenText = value.slice(index, endIndex)
+			const currentContext = contexts[contexts.length - 1]
+			const tokenKind =
+				currentContext?.kind === 'object' && currentContext.expectKey
+					? 'key'
+					: 'string'
+
+			pushToken(lines, tokenText, tokenKind)
+			if (currentContext?.kind === 'object' && currentContext.expectKey) {
+				currentContext.expectKey = false
+			}
+			index = endIndex
+			continue
+		}
+
+		if (character === '-' || isDigit(character)) {
+			const endIndex = readJsonNumber(value, index)
+			if (endIndex !== null) {
+				pushToken(lines, value.slice(index, endIndex), 'number')
+				index = endIndex
+				continue
+			}
+		}
+
+		const literalEndIndex = readJsonLiteral(value, index)
+		if (literalEndIndex !== null) {
+			const literalText = value.slice(index, literalEndIndex)
+			const tokenKind =
+				literalText === 'true' || literalText === 'false'
+					? 'boolean'
+					: 'null'
+			pushToken(lines, literalText, tokenKind)
+			index = literalEndIndex
+			continue
+		}
+
+		pushToken(lines, character, 'punctuation')
+		index += 1
+	}
+
+	return lines
+}
+
 export const detectValueStructure = (value: string): VisualizerDetection => {
 	const trimmed = value.trim()
 	if (!trimmed) {

@@ -8,8 +8,10 @@ import type {
 	KeyCountResult,
 	ConnectionTestResult,
 	KeyListResult,
+	KeySetRequest,
 	KeyValueRecord,
 	ProviderCapabilities,
+	RedisKeyType,
 } from '../../../shared/contracts/cache'
 import { isRedisFamilyEngine } from '../../../shared/lib/cache-engines'
 
@@ -44,16 +46,6 @@ type EngineConnection = Pick<
 	ConnectionProfile,
 	'engine' | 'host' | 'port' | 'dbIndex' | 'tlsEnabled' | 'timeoutMs'
 >
-
-type RedisKeyType =
-	| 'string'
-	| 'list'
-	| 'set'
-	| 'zset'
-	| 'hash'
-	| 'stream'
-	| 'none'
-	| 'unknown'
 
 export class DefaultCacheGateway implements CacheGateway {
 	public constructor(
@@ -193,7 +185,7 @@ export class DefaultCacheGateway implements CacheGateway {
 	public async setValue(
 		profile: ConnectionProfile,
 		secret: ConnectionSecret,
-		args: { key: string; value: string; ttlSeconds?: number },
+		args: { key: string; value: KeySetRequest['value']; ttlSeconds?: number },
 	): Promise<void> {
 		if (isRedisFamilyEngine(profile.engine)) {
 			await this.redisSetValue(profile, secret, args)
@@ -202,7 +194,14 @@ export class DefaultCacheGateway implements CacheGateway {
 
 		const client = this.createMemcachedClient(profile, secret)
 		try {
-			await client.set(args.key, args.value, {
+			const value =
+				typeof args.value === 'string'
+					? args.value
+					: args.value.kind === 'string'
+						? args.value.value
+						: serializeRedisStructuredValue(args.value)
+
+			await client.set(args.key, value, {
 				expires: args.ttlSeconds ?? 0,
 			})
 			await this.memcachedIndexRepository.upsertKey(profile.id, args.key)
@@ -500,18 +499,68 @@ export class DefaultCacheGateway implements CacheGateway {
 	private async redisSetValue(
 		profile: ConnectionProfile,
 		secret: ConnectionSecret,
-		args: { key: string; value: string; ttlSeconds?: number },
+		args: { key: string; value: KeySetRequest['value']; ttlSeconds?: number },
 	): Promise<void> {
 		const client = this.createRedisClient(profile, secret)
 
 		try {
 			await client.connect()
-			if (typeof args.ttlSeconds === 'number') {
-				await client.set(args.key, args.value, {
-					EX: args.ttlSeconds,
-				})
-			} else {
+			await client.del(args.key)
+
+			if (typeof args.value === 'string') {
 				await client.set(args.key, args.value)
+			} else {
+				switch (args.value.kind) {
+					case 'string':
+						await client.set(args.key, args.value.value)
+						break
+					case 'hash':
+						if (args.value.entries.length > 0) {
+							await client.hSet(
+								args.key,
+								Object.fromEntries(
+									args.value.entries.map((entry) => [entry.field, entry.value]),
+								),
+							)
+						}
+						break
+					case 'list':
+						if (args.value.items.length > 0) {
+							await client.rPush(args.key, args.value.items)
+						}
+						break
+					case 'set':
+						if (args.value.members.length > 0) {
+							await client.sAdd(args.key, args.value.members)
+						}
+						break
+					case 'zset':
+						if (args.value.entries.length > 0) {
+							await client.zAdd(
+								args.key,
+								args.value.entries.map((entry) => ({
+									value: entry.member,
+									score: entry.score,
+								})),
+							)
+						}
+						break
+					case 'stream':
+						for (const entry of args.value.entries) {
+							await client.xAdd(
+								args.key,
+								'*',
+								Object.fromEntries(
+									entry.fields.map((field) => [field.field, field.value]),
+								),
+							)
+						}
+						break
+				}
+			}
+
+			if (typeof args.ttlSeconds === 'number') {
+				await client.expire(args.key, args.ttlSeconds)
 			}
 		} catch (error) {
 			throw this.toConnectionFailure(error)

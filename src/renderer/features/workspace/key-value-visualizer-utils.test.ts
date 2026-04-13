@@ -6,6 +6,7 @@ import {
 	normalizeDelimiter,
 	parseDelimiterSeparated,
 	parseJsonValue,
+	tokenizeJsonForHighlight,
 } from './key-value-visualizer-utils'
 
 describe('key-value-visualizer-utils', () => {
@@ -92,6 +93,24 @@ describe('key-value-visualizer-utils', () => {
 				{ text: ']', kind: 'punctuation' },
 			],
 			[{ text: '}', kind: 'punctuation' }],
+		])
+	})
+
+	it('tokenizes raw json without changing spacing', () => {
+		const lines = tokenizeJsonForHighlight('{"name":"jay","count":2}')
+
+		expect(lines).toEqual([
+			[
+				{ text: '{', kind: 'punctuation' },
+				{ text: '"name"', kind: 'key' },
+				{ text: ':', kind: 'punctuation' },
+				{ text: '"jay"', kind: 'string' },
+				{ text: ',', kind: 'punctuation' },
+				{ text: '"count"', kind: 'key' },
+				{ text: ':', kind: 'punctuation' },
+				{ text: '2', kind: 'number' },
+				{ text: '}', kind: 'punctuation' },
+			],
 		])
 	})
 })

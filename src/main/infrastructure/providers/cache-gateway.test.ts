@@ -13,9 +13,17 @@ const redisTypeMock = vi.fn()
 const redisTtlMock = vi.fn()
 const redisGetMock = vi.fn()
 const redisHGetAllMock = vi.fn()
+const redisHSetMock = vi.fn()
 const redisLRangeMock = vi.fn()
 const redisSMembersMock = vi.fn()
 const redisSendCommandMock = vi.fn()
+const redisSetMock = vi.fn()
+const redisDelMock = vi.fn()
+const redisExpireMock = vi.fn()
+const redisRPushMock = vi.fn()
+const redisSAddMock = vi.fn()
+const redisZAddMock = vi.fn()
+const redisXAddMock = vi.fn()
 const redisConnectMock = vi.fn(async () => undefined)
 const redisDisconnectMock = vi.fn(async () => undefined)
 
@@ -28,8 +36,16 @@ vi.mock('redis', () => ({
     ttl: redisTtlMock,
     get: redisGetMock,
     hGetAll: redisHGetAllMock,
+    hSet: redisHSetMock,
     lRange: redisLRangeMock,
+    rPush: redisRPushMock,
     sMembers: redisSMembersMock,
+    sAdd: redisSAddMock,
+    zAdd: redisZAddMock,
+    xAdd: redisXAddMock,
+    set: redisSetMock,
+    del: redisDelMock,
+    expire: redisExpireMock,
     sendCommand: redisSendCommandMock,
     disconnect: redisDisconnectMock,
     isOpen: true,
@@ -98,9 +114,17 @@ describe('DefaultCacheGateway search pagination', () => {
     redisTtlMock.mockReset()
     redisGetMock.mockReset()
     redisHGetAllMock.mockReset()
+    redisHSetMock.mockReset()
     redisLRangeMock.mockReset()
     redisSMembersMock.mockReset()
     redisSendCommandMock.mockReset()
+    redisSetMock.mockReset()
+    redisDelMock.mockReset()
+    redisExpireMock.mockReset()
+    redisRPushMock.mockReset()
+    redisSAddMock.mockReset()
+    redisZAddMock.mockReset()
+    redisXAddMock.mockReset()
     redisConnectMock.mockClear()
     redisDisconnectMock.mockClear()
   })
@@ -268,5 +292,29 @@ describe('DefaultCacheGateway search pagination', () => {
     })
     expect(redisGetMock).not.toHaveBeenCalled()
     expect(redisHGetAllMock).toHaveBeenCalledWith('user:123')
+  })
+
+  it('writes hash keys through type-aware Redis commands', async () => {
+    const gateway = new DefaultCacheGateway(createMemcachedRepository([]))
+
+    await gateway.setValue(redisProfile, secret, {
+      key: 'user:123',
+      value: {
+        kind: 'hash',
+        entries: [
+          { field: 'id', value: '123' },
+          { field: 'status', value: 'active' },
+        ],
+      },
+      ttlSeconds: 90,
+    })
+
+    expect(redisDelMock).toHaveBeenCalledWith('user:123')
+    expect(redisHSetMock).toHaveBeenCalledWith('user:123', {
+      id: '123',
+      status: 'active',
+    })
+    expect(redisExpireMock).toHaveBeenCalledWith('user:123', 90)
+    expect(redisSetMock).not.toHaveBeenCalled()
   })
 })

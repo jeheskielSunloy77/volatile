@@ -15,6 +15,7 @@ import type {
   IncidentBundle,
   KeyCountResult,
   KeyListResult,
+  KeySetRequest,
   KeyValueRecord,
   ObservabilitySnapshot,
   OperationErrorCode,
@@ -206,7 +207,7 @@ export interface CacheGateway {
   setValue: (
     profile: ConnectionProfile,
     secret: ConnectionSecret,
-    args: { key: string; value: string; ttlSeconds?: number },
+    args: { key: string; value: KeySetRequest['value']; ttlSeconds?: number },
   ) => Promise<void>
   deleteKey: (
     profile: ConnectionProfile,

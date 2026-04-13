@@ -54,7 +54,18 @@ import { ObservabilityPanel } from '@/renderer/features/observability/observabil
 import { WorkflowPanel } from '@/renderer/features/workflows/workflow-panel'
 import { KeyDetailCard } from '@/renderer/features/workspace/key-detail-card'
 import { KeyListCard } from '@/renderer/features/workspace/key-list-card'
-import { KeyUpsertDialog } from '@/renderer/features/workspace/key-upsert-dialog'
+import {
+	createEmptyKeyEditorDraft,
+	createKeyEditorDraftFromRecord,
+	KeyUpsertDialog,
+	parseKeyEditorDraftFromJson,
+	serializeKeyEditorDraftToJson,
+	serializeKeyEditorDraft,
+	validateRawJsonForDraftKind,
+	validateKeyEditorDraft,
+	type KeyEditorMode,
+	type KeyEditorDraft,
+} from '@/renderer/features/workspace/key-upsert-dialog'
 import { useIsMobile } from '@/renderer/hooks/use-mobile'
 import { useUiStore } from '@/renderer/state/ui-store'
 import type {
@@ -192,7 +203,12 @@ export const WorkspacePage = () => {
 		string | null
 	>(null)
 	const [upsertKeyName, setUpsertKeyName] = React.useState('')
-	const [upsertValue, setUpsertValue] = React.useState('')
+	const [upsertDraft, setUpsertDraft] = React.useState<KeyEditorDraft>(
+		createEmptyKeyEditorDraft(),
+	)
+	const [upsertEditorMode, setUpsertEditorMode] =
+		React.useState<KeyEditorMode>('json')
+	const [upsertRawJsonValue, setUpsertRawJsonValue] = React.useState('')
 	const [upsertTtlSeconds, setUpsertTtlSeconds] = React.useState('')
 	const [workspacePanelLayout, setWorkspacePanelLayout] = React.useState(
 		readWorkspacePanelLayout,
@@ -203,7 +219,10 @@ export const WorkspacePage = () => {
 		setUpsertTargetKey(null)
 		setUpsertPrefilledForKey(null)
 		setUpsertKeyName('')
-		setUpsertValue('')
+		const nextDraft = createEmptyKeyEditorDraft()
+		setUpsertDraft(nextDraft)
+		setUpsertEditorMode('json')
+		setUpsertRawJsonValue(serializeKeyEditorDraftToJson(nextDraft))
 		setUpsertTtlSeconds('')
 		setIsUpsertOpen(true)
 	}, [])
@@ -220,8 +239,11 @@ export const WorkspacePage = () => {
 			setUpsertPrefilledForKey(null)
 
 			if (preloadedForKey === key && keyDetailData) {
+				const nextDraft = createKeyEditorDraftFromRecord(keyDetailData)
 				setUpsertKeyName(key)
-				setUpsertValue(keyDetailData.value ?? '')
+				setUpsertDraft(nextDraft)
+				setUpsertEditorMode('json')
+				setUpsertRawJsonValue(serializeKeyEditorDraftToJson(nextDraft))
 				setUpsertTtlSeconds(
 					keyDetailData.ttlSeconds === null ? '' : String(keyDetailData.ttlSeconds),
 				)
@@ -431,7 +453,6 @@ export const WorkspacePage = () => {
 		},
 	})
 	const selectedKeyType = keyDetailQuery.data?.keyType
-	const selectedKeyIsStringEditable = keyDetailQuery.data?.isStringEditable ?? true
 
 	React.useEffect(() => {
 		if (!isUpsertOpen || upsertMode !== 'edit' || !upsertTargetKey) {
@@ -447,7 +468,9 @@ export const WorkspacePage = () => {
 		}
 
 		setUpsertKeyName(upsertTargetKey)
-		setUpsertValue(keyDetailQuery.data.value ?? '')
+		const nextDraft = createKeyEditorDraftFromRecord(keyDetailQuery.data)
+		setUpsertDraft(nextDraft)
+		setUpsertRawJsonValue(serializeKeyEditorDraftToJson(nextDraft))
 		setUpsertTtlSeconds(
 			keyDetailQuery.data.ttlSeconds === null
 				? ''
@@ -568,13 +591,24 @@ export const WorkspacePage = () => {
 				upsertTtlSeconds.trim().length > 0 && Number.isFinite(ttl) && ttl > 0
 					? ttl
 					: undefined
+			const effectiveDraft =
+				upsertEditorMode === 'json'
+					? parseKeyEditorDraftFromJson(upsertDraft.kind, upsertRawJsonValue)
+					: upsertDraft
+			const validationMessage =
+				upsertEditorMode === 'json'
+					? validateRawJsonForDraftKind(upsertDraft.kind, upsertRawJsonValue)
+					: validateKeyEditorDraft(upsertDraft)
+			if (validationMessage) {
+				throw new Error(validationMessage)
+			}
 
 			return unwrapResponse(
 				await window.desktopApi.setKey({
 					connectionId: selectedConnectionId,
 					namespaceId: selectedNamespaceId ?? undefined,
 					key: normalizedKey,
-					value: upsertValue,
+					value: serializeKeyEditorDraft(effectiveDraft),
 					ttlSeconds,
 				}),
 			)
@@ -602,6 +636,7 @@ export const WorkspacePage = () => {
 			setSelectedKey(normalizedKey)
 			setIsUpsertOpen(false)
 			setUpsertPrefilledForKey(null)
+		setUpsertEditorMode('json')
 		},
 		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : 'Save failed.')
@@ -851,7 +886,6 @@ export const WorkspacePage = () => {
 										value={keyDetailQuery.data?.value ?? null}
 										ttlSeconds={keyDetailQuery.data?.ttlSeconds ?? null}
 										keyType={selectedKeyType}
-										isStringEditable={selectedKeyIsStringEditable}
 										readOnly={isSelectedConnectionReadOnly}
 										supportsTTL={capabilities.supportsTTL}
 										isLoading={Boolean(selectedKey) && keyDetailQuery.isLoading}
@@ -911,15 +945,13 @@ export const WorkspacePage = () => {
 				mode={upsertMode}
 				readOnly={isSelectedConnectionReadOnly}
 				supportsTTL={capabilities.supportsTTL}
+				isRedisConnection={Boolean(
+					selectedConnection && selectedConnection.engine !== 'memcached',
+				)}
 				keyType={
 					upsertMode === 'edit' && selectedKey === upsertTargetKey
 						? selectedKeyType
-						: 'string'
-				}
-				isStringEditable={
-					upsertMode === 'edit' && selectedKey === upsertTargetKey
-						? selectedKeyIsStringEditable
-						: true
+						: upsertDraft.kind
 				}
 				isLoading={
 					upsertMode === 'edit' &&
@@ -937,16 +969,61 @@ export const WorkspacePage = () => {
 				}
 				isRetryableError={keyDetailError?.retryable}
 				keyName={upsertKeyName}
-				value={upsertValue}
+				draft={upsertDraft}
+				editorMode={upsertEditorMode}
+				rawJsonValue={upsertRawJsonValue}
+				validationMessage={
+					upsertEditorMode === 'json'
+						? validateRawJsonForDraftKind(upsertDraft.kind, upsertRawJsonValue)
+						: validateKeyEditorDraft(upsertDraft)
+				}
 				ttlSeconds={upsertTtlSeconds}
 				onOpenChange={(open) => {
 					setIsUpsertOpen(open)
 					if (!open) {
 						setUpsertPrefilledForKey(null)
+						setUpsertEditorMode('json')
 					}
 				}}
 				onKeyNameChange={setUpsertKeyName}
-				onValueChange={setUpsertValue}
+				onDraftChange={(draft) => {
+					setUpsertDraft(draft)
+					if (upsertEditorMode === 'json') {
+						setUpsertRawJsonValue(serializeKeyEditorDraftToJson(draft))
+					}
+				}}
+				onEditorModeChange={(mode) => {
+					if (mode === upsertEditorMode) {
+						return
+					}
+
+					if (mode === 'json') {
+						setUpsertRawJsonValue(serializeKeyEditorDraftToJson(upsertDraft))
+						setUpsertEditorMode('json')
+						return
+					}
+
+					const validationMessage = validateRawJsonForDraftKind(
+						upsertDraft.kind,
+						upsertRawJsonValue,
+					)
+					if (validationMessage) {
+						toast.error(validationMessage)
+						return
+					}
+
+					try {
+						setUpsertDraft(
+							parseKeyEditorDraftFromJson(upsertDraft.kind, upsertRawJsonValue),
+						)
+						setUpsertEditorMode('json')
+					} catch (error) {
+						toast.error(
+							error instanceof Error ? error.message : 'Invalid raw JSON.',
+						)
+					}
+				}}
+				onRawJsonValueChange={setUpsertRawJsonValue}
 				onTtlChange={setUpsertTtlSeconds}
 				onRetry={() => {
 					void keyDetailQuery.refetch()

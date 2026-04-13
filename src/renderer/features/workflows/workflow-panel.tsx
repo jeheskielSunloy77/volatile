@@ -43,6 +43,7 @@ import {
 	DashboardStats,
 } from '@/renderer/components/ui/dashboard'
 import { LoadingSkeletonLines } from '@/renderer/components/ui/loading-skeleton'
+import { JsonEditor } from '@/renderer/components/ui/json-editor'
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -64,7 +65,6 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/renderer/components/ui/table'
-import { Textarea } from '@/renderer/components/ui/textarea'
 import { useStartupGateReady } from '@/renderer/app/startup-gate'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { useUiStore } from '@/renderer/state/ui-store'
@@ -701,13 +701,11 @@ export const WorkflowPanel = ({
 						<Label htmlFor="workflow-template-parameters">
 							Parameters (JSON)
 						</Label>
-						<Textarea
+						<JsonEditor
 							id="workflow-template-parameters"
-							className="min-h-32 font-mono"
 							value={templateParametersText}
-							onChange={(event) =>
-								setTemplateParametersText(event.target.value)
-							}
+							onChange={setTemplateParametersText}
+							minHeightClassName="min-h-32"
 						/>
 					</div>
 
