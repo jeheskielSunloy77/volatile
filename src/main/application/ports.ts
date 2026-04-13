@@ -14,6 +14,7 @@ import type {
   HistoryQueryRequest,
   IncidentBundle,
   KeyCountResult,
+  CacheFlushScope,
   KeyListResult,
   KeySetRequest,
   KeyValueRecord,
@@ -213,6 +214,11 @@ export interface CacheGateway {
     profile: ConnectionProfile,
     secret: ConnectionSecret,
     key: string,
+  ) => Promise<void>
+  flush: (
+    profile: ConnectionProfile,
+    secret: ConnectionSecret,
+    args: { scope: CacheFlushScope; keyPrefix?: string },
   ) => Promise<void>
   pollEngineEvents: (
     profile: ConnectionProfile,

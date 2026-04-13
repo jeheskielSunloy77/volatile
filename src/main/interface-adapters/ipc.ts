@@ -27,7 +27,7 @@ export const registerIpcHandlers = (service: OperationsService): void => {
 		APP_COMMAND_CHANNEL,
 		async (_event, rawEnvelope): Promise<IpcResponseEnvelope<unknown>> => {
 			try {
-				const envelope = commandEnvelopeSchema.parse(rawEnvelope)
+				const envelope = commandEnvelopeSchema.parse(rawEnvelope) as AnyCommandEnvelope
 				const data = await handleCommand(service, envelope)
 
 				return {
@@ -79,6 +79,8 @@ const handleCommand = async (
 			return service.updateNamespace(envelope.payload)
 		case 'namespace.delete':
 			return service.deleteNamespace(envelope.payload)
+		case 'cache.flush':
+			return service.flushCache(envelope.payload)
 		case 'key.set':
 			return service.setKey(envelope.payload)
 		case 'key.update':

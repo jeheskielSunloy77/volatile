@@ -19,6 +19,9 @@ const redisSMembersMock = vi.fn()
 const redisSendCommandMock = vi.fn()
 const redisSetMock = vi.fn()
 const redisDelMock = vi.fn()
+const memcachedDeleteMock = vi.fn()
+const memcachedFlushMock = vi.fn()
+const memcachedQuitMock = vi.fn()
 const redisExpireMock = vi.fn()
 const redisRPushMock = vi.fn()
 const redisSAddMock = vi.fn()
@@ -55,7 +58,9 @@ vi.mock('redis', () => ({
 vi.mock('memjs', () => ({
   Client: {
     create: vi.fn(() => ({
-      quit: vi.fn(),
+      delete: memcachedDeleteMock,
+      flush: memcachedFlushMock,
+      quit: memcachedQuitMock,
     })),
   },
 }))
@@ -120,6 +125,9 @@ describe('DefaultCacheGateway search pagination', () => {
     redisSendCommandMock.mockReset()
     redisSetMock.mockReset()
     redisDelMock.mockReset()
+    memcachedDeleteMock.mockReset()
+    memcachedFlushMock.mockReset()
+    memcachedQuitMock.mockReset()
     redisExpireMock.mockReset()
     redisRPushMock.mockReset()
     redisSAddMock.mockReset()
@@ -316,5 +324,73 @@ describe('DefaultCacheGateway search pagination', () => {
     })
     expect(redisExpireMock).toHaveBeenCalledWith('user:123', 90)
     expect(redisSetMock).not.toHaveBeenCalled()
+  })
+
+  it('flushes Redis databases with FLUSHDB', async () => {
+    const gateway = new DefaultCacheGateway(createMemcachedRepository([]))
+
+    await gateway.flush(redisProfile, secret, { scope: 'database' })
+
+    expect(redisSendCommandMock).toHaveBeenCalledWith(['FLUSHDB'])
+  })
+
+  it('flushes Redis prefix namespaces by scanning and deleting matching keys', async () => {
+    redisScanMock
+      .mockResolvedValueOnce({
+        keys: ['tenant:user:1', 'tenant:user:2'],
+        cursor: '5',
+      })
+      .mockResolvedValueOnce({
+        keys: [],
+        cursor: '0',
+      })
+
+    const gateway = new DefaultCacheGateway(createMemcachedRepository([]))
+
+    await gateway.flush(redisProfile, secret, {
+      scope: 'namespace',
+      keyPrefix: 'tenant:',
+    })
+
+    expect(redisScanMock).toHaveBeenNthCalledWith(1, '0', {
+      MATCH: 'tenant:*',
+      COUNT: 1000,
+    })
+    expect(redisSendCommandMock).toHaveBeenCalledWith([
+      'DEL',
+      'tenant:user:1',
+      'tenant:user:2',
+    ])
+  })
+
+  it('flushes memcached databases and clears the local index', async () => {
+    const repository = createMemcachedRepository(['k1', 'k2'])
+    const gateway = new DefaultCacheGateway(repository)
+
+    await gateway.flush(memcachedProfile, secret, { scope: 'database' })
+
+    expect(memcachedFlushMock).toHaveBeenCalledTimes(1)
+    expect(repository.deleteByConnectionId).toHaveBeenCalledWith('mem-1')
+  })
+
+  it('flushes memcached prefix namespaces by deleting indexed keys', async () => {
+    const repository = createMemcachedRepository(['tenant:1', 'tenant:2'])
+    const gateway = new DefaultCacheGateway(repository)
+
+    await gateway.flush(memcachedProfile, secret, {
+      scope: 'namespace',
+      keyPrefix: 'tenant:',
+    })
+
+    expect(repository.searchKeys).toHaveBeenCalledWith(
+      'mem-1',
+      'tenant:*',
+      1000,
+      undefined,
+    )
+    expect(memcachedDeleteMock).toHaveBeenCalledWith('tenant:1')
+    expect(memcachedDeleteMock).toHaveBeenCalledWith('tenant:2')
+    expect(repository.removeKey).toHaveBeenCalledWith('mem-1', 'tenant:1')
+    expect(repository.removeKey).toHaveBeenCalledWith('mem-1', 'tenant:2')
   })
 })

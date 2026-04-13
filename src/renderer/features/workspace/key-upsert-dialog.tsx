@@ -391,8 +391,6 @@ export const parseKeyEditorDraftFromJson = (
         }),
       };
     }
-    case "string":
-      return createEmptyKeyEditorDraft("string");
   }
 };
 

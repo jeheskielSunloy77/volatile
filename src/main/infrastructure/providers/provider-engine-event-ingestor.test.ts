@@ -92,6 +92,7 @@ describe('ProviderEngineEventIngestor', () => {
       })),
       setValue: vi.fn(async () => undefined),
       deleteKey: vi.fn(async () => undefined),
+      flush: vi.fn(async () => undefined),
       pollEngineEvents,
     }
 

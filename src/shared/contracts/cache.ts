@@ -292,6 +292,15 @@ export interface KeyDeleteRequest {
   guardrailConfirmed?: boolean
 }
 
+export type CacheFlushScope = 'database' | 'namespace'
+
+export interface CacheFlushRequest {
+  connectionId: string
+  namespaceId?: string
+  scope: CacheFlushScope
+  guardrailConfirmed?: boolean
+}
+
 export interface KeyListResult {
   keys: string[]
   nextCursor?: string

@@ -11,6 +11,7 @@ import type {
 	AlertRuleUpdateRequest,
 	ComparePeriodsRequest,
 	ConnectionCapabilitiesRequest,
+	CacheFlushRequest,
 	ConnectionCreateRequest,
 	ConnectionDeleteRequest,
 	ConnectionGetRequest,
@@ -80,6 +81,9 @@ export interface DesktopApi {
 	deleteNamespace: (
 		payload: NamespaceDeleteRequest,
 	) => Promise<IpcResponseEnvelope<CommandResultMap['namespace.delete']>>
+	flushCache: (
+		payload: CacheFlushRequest,
+	) => Promise<IpcResponseEnvelope<CommandResultMap['cache.flush']>>
 	createConnection: (
 		payload: ConnectionCreateRequest,
 	) => Promise<IpcResponseEnvelope<CommandResultMap['connection.create']>>

@@ -63,6 +63,7 @@ export const desktopApi: DesktopApi = {
 	createNamespace: (payload) => invokeCommand('namespace.create', payload),
 	updateNamespace: (payload) => invokeCommand('namespace.update', payload),
 	deleteNamespace: (payload) => invokeCommand('namespace.delete', payload),
+	flushCache: (payload) => invokeCommand('cache.flush', payload),
 	createConnection: (payload) => invokeCommand('connection.create', payload),
 	updateConnection: (payload) => invokeCommand('connection.update', payload),
 	deleteConnection: (payload) => invokeCommand('connection.delete', payload),

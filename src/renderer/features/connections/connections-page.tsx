@@ -51,6 +51,7 @@ import {
 import { Separator } from '@/renderer/components/ui/separator'
 import { isConnectionsStartupReady } from '@/renderer/app/startup-readiness'
 import { useStartupGateReady } from '@/renderer/app/startup-gate'
+import { CacheFlushAction } from '@/renderer/features/common/cache-flush-action'
 import { unwrapResponse } from '@/renderer/features/common/ipc'
 import { ConnectionFormDialog } from '@/renderer/features/connections/connection-form-dialog'
 import {
@@ -58,7 +59,7 @@ import {
 	type ConnectionEngineFilter,
 } from '@/renderer/features/connections/filter-connections'
 import { useUiStore } from '@/renderer/state/ui-store'
-import type { ConnectionProfile } from '@/shared/contracts/cache'
+import type { CacheFlushScope, ConnectionProfile } from '@/shared/contracts/cache'
 import { getCacheEngineLabel } from '@/shared/lib/cache-engines'
 
 type ConnectionDialogState = {
@@ -145,6 +146,37 @@ export const ConnectionsPage = () => {
 		},
 		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : 'Delete failed.')
+		},
+	})
+
+	const flushCacheMutation = useMutation({
+		mutationFn: async (args: {
+			connectionId: string
+			scope: CacheFlushScope
+		}) =>
+			unwrapResponse(
+				await window.desktopApi.flushCache({
+					connectionId: args.connectionId,
+					scope: args.scope,
+					guardrailConfirmed: true,
+				}),
+			),
+		onSuccess: async (_result, args) => {
+			toast.success(
+				args.scope === 'namespace' ? 'Namespace flushed.' : 'Database flushed.',
+			)
+			await queryClient.invalidateQueries({ queryKey: ['keys', args.connectionId] })
+			await queryClient.invalidateQueries({
+				queryKey: ['key-count', args.connectionId],
+			})
+			await queryClient.invalidateQueries({ queryKey: ['key', args.connectionId] })
+			await queryClient.invalidateQueries({ queryKey: ['alerts'] })
+			await queryClient.invalidateQueries({
+				queryKey: ['observability-dashboard', args.connectionId],
+			})
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : 'Flush failed.')
 		},
 	})
 
@@ -390,6 +422,24 @@ export const ConnectionsPage = () => {
 													<ArrowRightIcon className='size-3.5' />
 													Open Workspace
 												</Button>
+												<CacheFlushAction
+													connectionName={connection.name}
+													namespaceOptionDisabled
+													disabled={Boolean(
+														connection.readOnly || connection.forceReadOnly,
+													)}
+													isSubmitting={
+														flushCacheMutation.isPending &&
+														flushCacheMutation.variables?.connectionId ===
+															connection.id
+													}
+													onFlush={(scope) =>
+														flushCacheMutation.mutate({
+															connectionId: connection.id,
+															scope,
+														})
+													}
+												/>
 												<Button
 													variant='outline'
 													size='icon-sm'

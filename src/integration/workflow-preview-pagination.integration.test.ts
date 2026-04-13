@@ -178,6 +178,15 @@ class InMemoryCacheGateway implements CacheGateway {
 		this.map.delete(`${profile.id}:${key}`)
 	}
 
+	public async flush(
+		profile: ConnectionProfile,
+		_secret: ConnectionSecret,
+		args: { scope: 'database' | 'namespace'; keyPrefix?: string },
+	): Promise<void> {
+		void profile
+		void args
+	}
+
 	public async pollEngineEvents(
 		profile: ConnectionProfile,
 		_secret: ConnectionSecret,

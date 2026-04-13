@@ -5,6 +5,7 @@ export const correlationIdSchema = z.string().min(1)
 
 export const engineSchema = z.enum(CACHE_ENGINES)
 export const namespaceStrategySchema = z.enum(['redisLogicalDb', 'keyPrefix'])
+export const cacheFlushScopeSchema = z.enum(['database', 'namespace'])
 export const environmentSchema = z.enum(['dev', 'staging', 'prod'])
 export const backoffStrategySchema = z.enum(['fixed', 'exponential'])
 export const workflowKindSchema = z.enum([
@@ -220,6 +221,24 @@ const keyGetPayloadSchema = z
     key: z.string().min(1),
   })
   .strict()
+
+const cacheFlushPayloadSchema = z
+  .object({
+    connectionId: idSchema,
+    namespaceId: idSchema.optional(),
+    scope: cacheFlushScopeSchema,
+    guardrailConfirmed: z.boolean().optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.scope === 'namespace' && typeof value.namespaceId !== 'string') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['namespaceId'],
+        message: 'namespaceId is required for namespace flushes',
+      })
+    }
+  })
 
 const redisStringValueSchema = z
   .object({
@@ -727,6 +746,13 @@ export const commandEnvelopeSchema = z.discriminatedUnion('command', [
     .object({
       command: z.literal('namespace.delete'),
       payload: namespaceDeletePayloadSchema,
+      correlationId: correlationIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      command: z.literal('cache.flush'),
+      payload: cacheFlushPayloadSchema,
       correlationId: correlationIdSchema,
     })
     .strict(),

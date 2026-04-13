@@ -49,6 +49,7 @@ import {
 	RendererOperationError,
 	unwrapResponse,
 } from '@/renderer/features/common/ipc'
+import { CacheFlushAction } from '@/renderer/features/common/cache-flush-action'
 import { GovernancePanel } from '@/renderer/features/governance/governance-panel'
 import { ObservabilityPanel } from '@/renderer/features/observability/observability-panel'
 import { WorkflowPanel } from '@/renderer/features/workflows/workflow-panel'
@@ -71,6 +72,7 @@ import { useUiStore } from '@/renderer/state/ui-store'
 import type {
 	KeyListResult,
 	KeyValueRecord,
+	CacheFlushScope,
 	ProviderCapabilities,
 	SnapshotRecord,
 } from '@/shared/contracts/cache'
@@ -337,6 +339,14 @@ export const WorkspacePage = () => {
 					(right.keyPrefix?.length ?? 0) - (left.keyPrefix?.length ?? 0),
 			)
 	}, [namespacesQuery.data, selectedNamespaceId])
+
+	const selectedNamespace = React.useMemo(
+		() =>
+			(namespacesQuery.data ?? []).find(
+				(namespace) => namespace.id === selectedNamespaceId,
+			) ?? null,
+		[namespacesQuery.data, selectedNamespaceId],
+	)
 
 	const resolveNamespaceBadge = React.useCallback(
 		(key: string): string | undefined => {
@@ -696,6 +706,45 @@ export const WorkspacePage = () => {
 		},
 	})
 
+	const flushCacheMutation = useMutation({
+		mutationFn: async (scope: CacheFlushScope) => {
+			if (!selectedConnectionId) {
+				throw new Error('Select a connection first.')
+			}
+
+			return unwrapResponse(
+				await window.desktopApi.flushCache({
+					connectionId: selectedConnectionId,
+					namespaceId: selectedNamespaceId ?? undefined,
+					scope,
+					guardrailConfirmed: true,
+				}),
+			)
+		},
+		onSuccess: async (_result, scope) => {
+			const successLabel =
+				scope === 'namespace' ? 'Namespace flushed.' : 'Database flushed.'
+			toast.success(successLabel)
+			setSelectedKey(null)
+			await queryClient.invalidateQueries({
+				queryKey: ['keys', selectedConnectionId],
+			})
+			await queryClient.invalidateQueries({
+				queryKey: ['key-count', selectedConnectionId],
+			})
+			await queryClient.invalidateQueries({
+				queryKey: ['key', selectedConnectionId],
+			})
+			await queryClient.invalidateQueries({ queryKey: ['alerts'] })
+			await queryClient.invalidateQueries({
+				queryKey: ['observability-dashboard', selectedConnectionId],
+			})
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : 'Flush failed.')
+		},
+	})
+
 	const restoreSnapshotMutation = useMutation({
 		mutationFn: async (snapshotId?: string) => {
 			if (!selectedConnectionId || !selectedKey) {
@@ -801,14 +850,24 @@ export const WorkspacePage = () => {
 									Governance
 								</TabsTrigger>
 							</TabsList>
-							<Button
-								size='sm'
-								onClick={openCreateKeyModal}
-								disabled={isSelectedConnectionReadOnly}
-							>
-								<PlusIcon className='size-3.5' />
-								New Key
-							</Button>
+							<div className='flex items-center gap-2'>
+								<CacheFlushAction
+									connectionName={selectedConnection.name}
+									namespaceName={selectedNamespace?.name}
+									namespaceOptionDisabled={!selectedNamespace}
+									disabled={isSelectedConnectionReadOnly}
+									isSubmitting={flushCacheMutation.isPending}
+									onFlush={(scope) => flushCacheMutation.mutate(scope)}
+								/>
+								<Button
+									size='sm'
+									onClick={openCreateKeyModal}
+									disabled={isSelectedConnectionReadOnly}
+								>
+									<PlusIcon className='size-3.5' />
+									New Key
+								</Button>
+							</div>
 						</div>
 
 						<TabsContent value='workspace' className='min-h-0'>

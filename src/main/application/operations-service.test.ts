@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type {
 	ConnectionCreateRequest,
+	CacheFlushScope,
 	ConnectionProfile,
 	ConnectionSecret,
 	ProviderCapabilities,
@@ -143,6 +144,7 @@ const createGatewayMock = (overrides?: Partial<CacheGateway>): CacheGateway => {
 		})),
 		setValue: vi.fn(async () => undefined),
 		deleteKey: vi.fn(async () => undefined),
+		flush: vi.fn(async () => undefined),
 		pollEngineEvents: vi.fn(async (_profile, _secret, args) => ({
 			events: [],
 			nextCursor: args.cursor,
@@ -176,6 +178,12 @@ const createConnectionPayload = (): ConnectionCreateRequest => ({
 	secret: {
 		password: 'secret',
 	},
+})
+
+const createFlushArgs = (scope: CacheFlushScope) => ({
+	connectionId: 'flush-connection',
+	scope,
+	guardrailConfirmed: true,
 })
 
 const createStoredProfile = (): ConnectionProfile => ({
@@ -634,6 +642,121 @@ describe('OperationsService', () => {
 		})
 
 		expect(deleteKeyMock).toHaveBeenCalledTimes(1)
+	})
+
+	it('flushes the selected database through the cache gateway', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const flushMock = vi.fn(async () => undefined)
+		const gateway = createGatewayMock({ flush: flushMock })
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'flush-connection',
+			dbIndex: 4,
+			secretRef: 'flush-connection',
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		await expect(service.flushCache(createFlushArgs('database'))).resolves.toEqual({
+			success: true,
+		})
+
+		expect(flushMock).toHaveBeenCalledWith(
+			expect.objectContaining({ id: profile.id, dbIndex: 0 }),
+			expect.any(Object),
+			{ scope: 'database' },
+		)
+	})
+
+	it('flushes prefix namespaces using namespace scope and prefix metadata', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const flushMock = vi.fn(async () => undefined)
+		const gateway = createGatewayMock({ flush: flushMock })
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'flush-connection',
+			secretRef: 'flush-connection',
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		const namespace = await service.createNamespace({
+			namespace: {
+				connectionId: profile.id,
+				name: 'tenant-a',
+				strategy: 'keyPrefix',
+				keyPrefix: 'tenant:',
+			},
+		})
+
+		await expect(
+			service.flushCache({
+				...createFlushArgs('namespace'),
+				namespaceId: namespace.id,
+			}),
+		).resolves.toEqual({
+			success: true,
+		})
+
+		expect(flushMock).toHaveBeenCalledWith(
+			expect.objectContaining({ id: profile.id }),
+			expect.any(Object),
+			{ scope: 'namespace', keyPrefix: 'tenant:' },
+		)
+	})
+
+	it('rejects namespace flushes without a namespace selection', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const flushMock = vi.fn(async () => undefined)
+		const gateway = createGatewayMock({ flush: flushMock })
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'flush-connection',
+			secretRef: 'flush-connection',
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		await expect(service.flushCache(createFlushArgs('namespace'))).rejects.toEqual(
+			expect.objectContaining({
+				code: 'VALIDATION_ERROR',
+			}),
+		)
+
+		expect(flushMock).not.toHaveBeenCalled()
 	})
 
 	it('returns exact key totals with and without pattern filters', async () => {

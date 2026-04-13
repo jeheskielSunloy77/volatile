@@ -2,6 +2,7 @@ import { Client as MemjsClient } from 'memjs'
 import { createClient, type RedisClientType } from 'redis'
 
 import type {
+	CacheFlushScope,
 	ConnectionDraft,
 	ConnectionProfile,
 	ConnectionSecret,
@@ -231,6 +232,19 @@ export class DefaultCacheGateway implements CacheGateway {
 		} finally {
 			client.quit()
 		}
+	}
+
+	public async flush(
+		profile: ConnectionProfile,
+		secret: ConnectionSecret,
+		args: { scope: CacheFlushScope; keyPrefix?: string },
+	): Promise<void> {
+		if (isRedisFamilyEngine(profile.engine)) {
+			await this.redisFlush(profile, secret, args)
+			return
+		}
+
+		await this.memcachedFlush(profile, secret, args)
 	}
 
 	public async pollEngineEvents(
@@ -583,6 +597,89 @@ export class DefaultCacheGateway implements CacheGateway {
 			throw this.toConnectionFailure(error)
 		} finally {
 			await this.disconnectRedisClient(client)
+		}
+	}
+
+	private async redisFlush(
+		profile: ConnectionProfile,
+		secret: ConnectionSecret,
+		args: { scope: CacheFlushScope; keyPrefix?: string },
+	): Promise<void> {
+		const client = this.createRedisClient(profile, secret)
+
+		try {
+			await client.connect()
+
+			if (args.scope === 'database') {
+				await client.sendCommand(['FLUSHDB'])
+				return
+			}
+
+			const pattern = `${args.keyPrefix ?? ''}*`
+			let cursor = '0'
+
+			do {
+				const scanResult = await client.scan(cursor, {
+					MATCH: pattern,
+					COUNT: 1000,
+				})
+				const keys = scanResult.keys.map(toRedisText)
+				if (keys.length > 0) {
+					await client.sendCommand(['DEL', ...keys])
+				}
+				cursor = toRedisText(scanResult.cursor)
+			} while (cursor !== '0')
+		} catch (error) {
+			throw this.toConnectionFailure(error)
+		} finally {
+			await this.disconnectRedisClient(client)
+		}
+	}
+
+	private async memcachedFlush(
+		profile: ConnectionProfile,
+		secret: ConnectionSecret,
+		args: { scope: CacheFlushScope; keyPrefix?: string },
+	): Promise<void> {
+		const client = this.createMemcachedClient(profile, secret)
+
+		try {
+			if (args.scope === 'database') {
+				await client.flush()
+				await this.memcachedIndexRepository.deleteByConnectionId(profile.id)
+				return
+			}
+
+			const pattern = `${args.keyPrefix ?? ''}*`
+			let cursor: string | undefined
+			const pageSize = 1000
+
+			for (;;) {
+				const keys = await this.memcachedIndexRepository.searchKeys(
+					profile.id,
+					pattern,
+					pageSize,
+					cursor,
+				)
+				if (keys.length === 0) {
+					break
+				}
+
+				for (const key of keys) {
+					await client.delete(key)
+					await this.memcachedIndexRepository.removeKey(profile.id, key)
+				}
+
+				if (keys.length < pageSize) {
+					break
+				}
+
+				cursor = keys[keys.length - 1]
+			}
+		} catch (error) {
+			throw this.toConnectionFailure(error)
+		} finally {
+			client.quit()
 		}
 	}
 

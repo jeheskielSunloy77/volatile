@@ -236,6 +236,34 @@ describe('commandEnvelopeSchema', () => {
     expect(parsed.command).toBe('alert.deleteAll')
   })
 
+  it('accepts cache.flush commands for namespace scope', () => {
+    const parsed = commandEnvelopeSchema.parse({
+      command: 'cache.flush',
+      correlationId: 'cache-flush-1',
+      payload: {
+        connectionId: 'conn-1',
+        namespaceId: 'namespace-1',
+        scope: 'namespace',
+        guardrailConfirmed: true,
+      },
+    })
+
+    expect(parsed.command).toBe('cache.flush')
+  })
+
+  it('rejects namespace cache.flush commands without namespaceId', () => {
+    expect(() =>
+      commandEnvelopeSchema.parse({
+        command: 'cache.flush',
+        correlationId: 'cache-flush-2',
+        payload: {
+          connectionId: 'conn-1',
+          scope: 'namespace',
+        },
+      }),
+    ).toThrowError()
+  })
+
   it('rejects governance policy packs with invalid execution windows', () => {
     expect(() =>
       commandEnvelopeSchema.parse({

@@ -19,6 +19,7 @@ import type {
 	ComparePeriodsRequest,
 	ComparePeriodsResult,
 	ConnectionCapabilitiesRequest,
+	CacheFlushRequest,
 	ConnectionCreateRequest,
 	ConnectionDeleteRequest,
 	ConnectionGetRequest,
@@ -1196,6 +1197,84 @@ export class OperationsService {
 			action: 'key.delete',
 			keyOrPattern: payload.key,
 			run: () => this.cacheGateway.deleteKey(scope.profile, scope.secret, scopedKey),
+		})
+
+		return {
+			success: true,
+		}
+	}
+
+	public async flushCache(payload: CacheFlushRequest): Promise<MutationResult> {
+		if (payload.scope === 'database') {
+			const scope = await this.requireProfileWithSecretAndNamespace(
+				payload.connectionId,
+				payload.namespaceId,
+			)
+
+			await this.enforceWritable(scope.profile, 'cache.flush', 'database')
+			await this.enforceProdGuardrail(
+				scope.profile,
+				'cache.flush',
+				'database',
+				payload.guardrailConfirmed,
+			)
+
+			await this.executeWithPolicy({
+				profile: scope.profile,
+				action: 'cache.flush',
+				keyOrPattern: 'database',
+				run: () =>
+					this.cacheGateway.flush(scope.profile, scope.secret, {
+						scope: 'database',
+					}),
+			})
+
+			return {
+				success: true,
+			}
+		}
+
+		const scope = await this.requireProfileWithSecretAndNamespace(
+			payload.connectionId,
+			payload.namespaceId,
+		)
+
+		if (!scope.namespace) {
+			throw new OperationFailure(
+				'VALIDATION_ERROR',
+				'Select a namespace before running a namespace flush.',
+				false,
+				{
+					connectionId: payload.connectionId,
+				},
+			)
+		}
+
+		const namespaceTarget =
+			scope.namespace.strategy === 'keyPrefix'
+				? scope.namespace.keyPrefix ?? scope.namespace.name
+				: scope.namespace.name
+
+		await this.enforceWritable(scope.profile, 'cache.flush', namespaceTarget)
+		await this.enforceProdGuardrail(
+			scope.profile,
+			'cache.flush',
+			namespaceTarget,
+			payload.guardrailConfirmed,
+		)
+
+		await this.executeWithPolicy({
+			profile: scope.profile,
+			action: 'cache.flush',
+			keyOrPattern: namespaceTarget,
+			run: () =>
+				this.cacheGateway.flush(scope.profile, scope.secret, {
+					scope: 'namespace',
+					keyPrefix:
+						scope.namespace?.strategy === 'keyPrefix'
+							? scope.namespace.keyPrefix
+							: undefined,
+				}),
 		})
 
 		return {

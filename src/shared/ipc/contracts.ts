@@ -11,6 +11,7 @@ import type {
 	ComparePeriodsRequest,
 	ComparePeriodsResult,
 	ConnectionCapabilitiesRequest,
+	CacheFlushRequest,
 	ConnectionCreateRequest,
 	ConnectionDeleteRequest,
 	ConnectionGetRequest,
@@ -95,6 +96,7 @@ export type AppCommand =
 	| 'namespace.create'
 	| 'namespace.update'
 	| 'namespace.delete'
+	| 'cache.flush'
 	| 'key.set'
 	| 'key.update'
 	| 'key.delete'
@@ -160,6 +162,7 @@ export interface CommandPayloadMap {
 	'namespace.create': NamespaceCreateRequest
 	'namespace.update': NamespaceUpdateRequest
 	'namespace.delete': NamespaceDeleteRequest
+	'cache.flush': CacheFlushRequest
 	'key.set': KeySetRequest
 	'key.update': KeyUpdateRequest
 	'key.delete': KeyDeleteRequest
@@ -227,6 +230,7 @@ export interface CommandResultMap {
 	'namespace.create': NamespaceProfile
 	'namespace.update': NamespaceProfile
 	'namespace.delete': MutationResult
+	'cache.flush': MutationResult
 	'key.set': MutationResult
 	'key.update': MutationResult
 	'key.delete': MutationResult
