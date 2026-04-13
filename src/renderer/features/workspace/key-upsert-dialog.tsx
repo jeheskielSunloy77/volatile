@@ -6,7 +6,6 @@ import {
   KeyRoundIcon,
   PlusIcon,
   SaveIcon,
-  TextCursorInputIcon,
   Trash2Icon,
 } from "lucide-react";
 
@@ -25,11 +24,11 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  InputGroupTextarea,
 } from "@/renderer/components/ui/input-group";
 import { Label } from "@/renderer/components/ui/label";
 import { LoadingSkeletonLines } from "@/renderer/components/ui/loading-skeleton";
 import { JsonEditor } from "@/renderer/components/ui/json-editor";
+import { Textarea } from "@/renderer/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -706,34 +705,36 @@ export const KeyUpsertDialog = ({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium">Editor Mode</p>
-                    <p className="text-muted-foreground text-xs">
-                      Switch between structured controls and a raw JSON editor.
-                    </p>
+                {activeKind !== "string" && (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium">Editor Mode</p>
+                      <p className="text-muted-foreground text-xs">
+                        Switch between structured controls and a raw JSON editor.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={
+                          editorMode === "structured" ? "default" : "outline"
+                        }
+                        size="sm"
+                        disabled={readOnly}
+                        onClick={() => onEditorModeChange("structured")}
+                      >
+                        Structured
+                      </Button>
+                      <Button
+                        variant={editorMode === "json" ? "default" : "outline"}
+                        size="sm"
+                        disabled={readOnly}
+                        onClick={() => onEditorModeChange("json")}
+                      >
+                        Raw JSON
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={
-                        editorMode === "structured" ? "default" : "outline"
-                      }
-                      size="sm"
-                      disabled={readOnly}
-                      onClick={() => onEditorModeChange("structured")}
-                    >
-                      Structured
-                    </Button>
-                    <Button
-                      variant={editorMode === "json" ? "default" : "outline"}
-                      size="sm"
-                      disabled={readOnly}
-                      onClick={() => onEditorModeChange("json")}
-                    >
-                      Raw JSON
-                    </Button>
-                  </div>
-                </div>
+                )}
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-1.5">
@@ -797,7 +798,24 @@ export const KeyUpsertDialog = ({
                   )}
                 </div>
 
-                {editorMode === "json" ? (
+                {activeKind === "string" ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="workspace-upsert-value">Value</Label>
+                    <Textarea
+                      id="workspace-upsert-value"
+                      value={draft.stringValue}
+                      onChange={(event) =>
+                        onDraftChange({
+                          ...draft,
+                          stringValue: event.target.value,
+                        })
+                      }
+                      className="min-h-44"
+                      placeholder="String value"
+                      disabled={disabled}
+                    />
+                  </div>
+                ) : editorMode === "json" ? (
                   <div className="space-y-1.5">
                     <Label htmlFor="workspace-upsert-raw-json">Raw JSON</Label>
                     <JsonEditor
@@ -805,40 +823,11 @@ export const KeyUpsertDialog = ({
                       value={rawJsonValue}
                       onChange={onRawJsonValueChange}
                       disabled={disabled}
-                      highlight={activeKind !== "string"}
                       minHeightClassName="min-h-[50vh]"
-                      placeholder={
-                        activeKind === "string"
-                          ? "Raw string content"
-                          : "Enter the canonical JSON shape for this key type"
-                      }
+                      placeholder="Enter the canonical JSON shape for this key type"
                     />
                   </div>
-                ) : (
-                  activeKind === "string" && (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="workspace-upsert-value">Value</Label>
-                      <InputGroup className="min-h-44 items-start">
-                        <InputGroupAddon className="pt-2">
-                          <TextCursorInputIcon className="size-3.5" />
-                        </InputGroupAddon>
-                        <InputGroupTextarea
-                          id="workspace-upsert-value"
-                          value={draft.stringValue}
-                          onChange={(event) =>
-                            onDraftChange({
-                              ...draft,
-                              stringValue: event.target.value,
-                            })
-                          }
-                          className="min-h-44"
-                          placeholder="JSON or string value"
-                          disabled={disabled}
-                        />
-                      </InputGroup>
-                    </div>
-                  )
-                )}
+                ) : null}
 
                 {editorMode === "structured" && activeKind === "hash" && (
                   <div className="space-y-2">
