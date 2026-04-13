@@ -276,6 +276,15 @@ export interface KeySetRequest {
   ttlSeconds?: number
 }
 
+export interface KeyUpdateRequest {
+  connectionId: string
+  namespaceId?: string
+  currentKey: string
+  key: string
+  value: KeySetRequest['value']
+  ttlSeconds?: number
+}
+
 export interface KeyDeleteRequest {
   connectionId: string
   namespaceId?: string

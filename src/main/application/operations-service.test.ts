@@ -327,6 +327,119 @@ describe('OperationsService', () => {
 		)
 	})
 
+	it('updates a key by writing the destination and deleting the source', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const setValueMock = vi.fn(async () => undefined)
+		const deleteKeyMock = vi.fn(async () => undefined)
+		const getValueMock = vi.fn(async (_profile, _secret, key) => ({
+			key,
+			value: null,
+			ttlSeconds: null,
+			supportsTTL: true,
+			keyType: 'none' as const,
+		}))
+		const gateway = createGatewayMock({
+			getValue: getValueMock,
+			setValue: setValueMock,
+			deleteKey: deleteKeyMock,
+		})
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'update-key-1',
+			secretRef: 'update-key-1',
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		await service.updateKey({
+			connectionId: profile.id,
+			currentKey: 'user:1',
+			key: 'user:2',
+			value: {
+				kind: 'set',
+				members: ['a', 'b'],
+			},
+			ttlSeconds: 120,
+		})
+
+		expect(getValueMock).toHaveBeenCalledWith(
+			expect.any(Object),
+			expect.any(Object),
+			'user:2',
+		)
+		expect(setValueMock).toHaveBeenCalledWith(expect.any(Object), expect.any(Object), {
+			key: 'user:2',
+			value: {
+				kind: 'set',
+				members: ['a', 'b'],
+			},
+			ttlSeconds: 120,
+		})
+		expect(deleteKeyMock).toHaveBeenCalledWith(
+			expect.any(Object),
+			expect.any(Object),
+			'user:1',
+		)
+	})
+
+	it('rejects key updates when the destination already exists', async () => {
+		const repository = new InMemoryConnectionRepository()
+		const secretStore = new InMemorySecretStore()
+		const memcachedIndex = new InMemoryMemcachedIndexRepository()
+		const setValueMock = vi.fn(async () => undefined)
+		const gateway = createGatewayMock({
+			getValue: vi.fn(async (_profile, _secret, key) => ({
+				key,
+				value: 'taken',
+				ttlSeconds: null,
+				supportsTTL: true,
+				keyType: 'string' as const,
+			})),
+			setValue: setValueMock,
+		})
+
+		const profile: ConnectionProfile = {
+			...createStoredProfile(),
+			id: 'update-key-2',
+			secretRef: 'update-key-2',
+		}
+
+		await repository.save(profile)
+		await secretStore.saveSecret(profile.id, { password: 'secret' })
+
+		const service = new OperationsService(
+			repository,
+			secretStore,
+			memcachedIndex,
+			gateway,
+		)
+
+		await expect(
+			service.updateKey({
+				connectionId: profile.id,
+				currentKey: 'user:1',
+				key: 'user:2',
+				value: 'value',
+			}),
+		).rejects.toMatchObject({
+			code: 'CONFLICT',
+			message: 'Key "user:2" already exists.',
+		})
+
+		expect(setValueMock).not.toHaveBeenCalled()
+	})
+
 	it('rolls back metadata when secret storage fails during create', async () => {
 		const repository = new InMemoryConnectionRepository()
 		const memcachedIndex = new InMemoryMemcachedIndexRepository()

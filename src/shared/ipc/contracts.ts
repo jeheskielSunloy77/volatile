@@ -52,6 +52,7 @@ import type {
 	KeyListResult,
 	KeySearchRequest,
 	KeySetRequest,
+	KeyUpdateRequest,
 	KeyspaceActivityRequest,
 	KeyspaceActivityView,
 	KeyValueRecord,
@@ -95,6 +96,7 @@ export type AppCommand =
 	| 'namespace.update'
 	| 'namespace.delete'
 	| 'key.set'
+	| 'key.update'
 	| 'key.delete'
 	| 'rollback.restore'
 	| 'workflow.template.create'
@@ -159,6 +161,7 @@ export interface CommandPayloadMap {
 	'namespace.update': NamespaceUpdateRequest
 	'namespace.delete': NamespaceDeleteRequest
 	'key.set': KeySetRequest
+	'key.update': KeyUpdateRequest
 	'key.delete': KeyDeleteRequest
 	'rollback.restore': RollbackRestoreRequest
 	'workflow.template.create': WorkflowTemplateCreateRequest
@@ -225,6 +228,7 @@ export interface CommandResultMap {
 	'namespace.update': NamespaceProfile
 	'namespace.delete': MutationResult
 	'key.set': MutationResult
+	'key.update': MutationResult
 	'key.delete': MutationResult
 	'rollback.restore': MutationResult
 	'workflow.template.create': WorkflowTemplate

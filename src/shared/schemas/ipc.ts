@@ -310,6 +310,17 @@ const keySetPayloadSchema = z
   })
   .strict()
 
+const keyUpdatePayloadSchema = z
+  .object({
+    connectionId: idSchema,
+    namespaceId: idSchema.optional(),
+    currentKey: z.string().min(1),
+    key: z.string().min(1),
+    value: keyValueInputSchema,
+    ttlSeconds: z.number().int().min(1).max(31536000).optional(),
+  })
+  .strict()
+
 const keyDeletePayloadSchema = z
   .object({
     connectionId: idSchema,
@@ -723,6 +734,13 @@ export const commandEnvelopeSchema = z.discriminatedUnion('command', [
     .object({
       command: z.literal('key.set'),
       payload: keySetPayloadSchema,
+      correlationId: correlationIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      command: z.literal('key.update'),
+      payload: keyUpdatePayloadSchema,
       correlationId: correlationIdSchema,
     })
     .strict(),

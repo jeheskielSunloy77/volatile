@@ -488,7 +488,6 @@ type KeyUpsertDialogProps = {
   readOnly: boolean;
   supportsTTL: boolean;
   isRedisConnection: boolean;
-  keyType?: RedisKeyType;
   isLoading: boolean;
   isSaving: boolean;
   errorMessage?: string;
@@ -638,7 +637,6 @@ export const KeyUpsertDialog = ({
   readOnly,
   supportsTTL,
   isRedisConnection,
-  keyType,
   isLoading,
   isSaving,
   errorMessage,
@@ -659,8 +657,7 @@ export const KeyUpsertDialog = ({
   onSave,
 }: KeyUpsertDialogProps) => {
   const isEditMode = mode === "edit";
-  const activeKind =
-    isEditMode && isEditableRedisKeyKind(keyType) ? keyType : draft.kind;
+  const activeKind = draft.kind;
   const disabled = readOnly || isLoading;
 
   return (
@@ -752,12 +749,12 @@ export const KeyUpsertDialog = ({
                           onKeyNameChange(event.target.value)
                         }
                         placeholder="session:123"
-                        disabled={isEditMode || readOnly}
+                        disabled={readOnly}
                       />
                     </InputGroup>
                   </div>
 
-                  {!isEditMode && isRedisConnection ? (
+                  {isRedisConnection ? (
                     <div className="space-y-1.5">
                       <Label htmlFor="workspace-upsert-type">Key Type</Label>
                       <Select

@@ -73,6 +73,7 @@ export const desktopApi: DesktopApi = {
 	countKeys: (payload) => invokeQuery('key.count', payload),
 	getKey: (payload) => invokeQuery('key.get', payload),
 	setKey: (payload) => invokeCommand('key.set', payload),
+	updateKey: (payload) => invokeCommand('key.update', payload),
 	deleteKey: (payload) => invokeCommand('key.delete', payload),
 	listSnapshots: (payload) => invokeQuery('snapshot.list', payload),
 	restoreSnapshot: (payload) => invokeCommand('rollback.restore', payload),

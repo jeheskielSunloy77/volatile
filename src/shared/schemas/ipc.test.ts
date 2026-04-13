@@ -141,6 +141,25 @@ describe('commandEnvelopeSchema', () => {
     ).toThrowError()
   })
 
+  it('accepts key.update payloads for rename and type changes', () => {
+    const parsed = commandEnvelopeSchema.parse({
+      command: 'key.update',
+      correlationId: 'key-update-1',
+      payload: {
+        connectionId: 'conn-1',
+        currentKey: 'session:1',
+        key: 'session:2',
+        value: {
+          kind: 'hash',
+          entries: [{ field: 'status', value: 'active' }],
+        },
+        ttlSeconds: 300,
+      },
+    })
+
+    expect(parsed.command).toBe('key.update')
+  })
+
   it('rejects workflow execute payloads with no template source', () => {
     expect(() =>
       commandEnvelopeSchema.parse({

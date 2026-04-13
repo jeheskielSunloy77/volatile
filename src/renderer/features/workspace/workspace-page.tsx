@@ -603,6 +603,19 @@ export const WorkspacePage = () => {
 				throw new Error(validationMessage)
 			}
 
+			if (upsertMode === 'edit' && upsertTargetKey) {
+				return unwrapResponse(
+					await window.desktopApi.updateKey({
+						connectionId: selectedConnectionId,
+						namespaceId: selectedNamespaceId ?? undefined,
+						currentKey: upsertTargetKey,
+						key: normalizedKey,
+						value: serializeKeyEditorDraft(effectiveDraft),
+						ttlSeconds,
+					}),
+				)
+			}
+
 			return unwrapResponse(
 				await window.desktopApi.setKey({
 					connectionId: selectedConnectionId,
@@ -636,7 +649,7 @@ export const WorkspacePage = () => {
 			setSelectedKey(normalizedKey)
 			setIsUpsertOpen(false)
 			setUpsertPrefilledForKey(null)
-		setUpsertEditorMode('json')
+			setUpsertEditorMode('json')
 		},
 		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : 'Save failed.')
@@ -948,11 +961,6 @@ export const WorkspacePage = () => {
 				isRedisConnection={Boolean(
 					selectedConnection && selectedConnection.engine !== 'memcached',
 				)}
-				keyType={
-					upsertMode === 'edit' && selectedKey === upsertTargetKey
-						? selectedKeyType
-						: upsertDraft.kind
-				}
 				isLoading={
 					upsertMode === 'edit' &&
 					Boolean(upsertTargetKey) &&
@@ -1016,7 +1024,7 @@ export const WorkspacePage = () => {
 						setUpsertDraft(
 							parseKeyEditorDraftFromJson(upsertDraft.kind, upsertRawJsonValue),
 						)
-						setUpsertEditorMode('json')
+						setUpsertEditorMode('structured')
 					} catch (error) {
 						toast.error(
 							error instanceof Error ? error.message : 'Invalid raw JSON.',

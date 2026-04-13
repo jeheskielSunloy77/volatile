@@ -40,6 +40,7 @@ import type {
 	KeyListRequest,
 	KeySearchRequest,
 	KeySetRequest,
+	KeyUpdateRequest,
 	KeyspaceActivityRequest,
 	ObservabilityDashboardRequest,
 	RetentionPolicyUpdateRequest,
@@ -109,6 +110,9 @@ export interface DesktopApi {
 	setKey: (
 		payload: KeySetRequest,
 	) => Promise<IpcResponseEnvelope<CommandResultMap['key.set']>>
+	updateKey: (
+		payload: KeyUpdateRequest,
+	) => Promise<IpcResponseEnvelope<CommandResultMap['key.update']>>
 	deleteKey: (
 		payload: KeyDeleteRequest,
 	) => Promise<IpcResponseEnvelope<CommandResultMap['key.delete']>>

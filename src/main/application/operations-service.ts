@@ -61,6 +61,7 @@ import type {
 	KeyListResult,
 	KeySearchRequest,
 	KeySetRequest,
+	KeyUpdateRequest,
 	KeyspaceActivityPattern,
 	KeyspaceActivityPoint,
 	KeyspaceActivityRequest,
@@ -1095,6 +1096,71 @@ export class OperationsService {
 					value: payload.value,
 					ttlSeconds: payload.ttlSeconds,
 				}),
+		})
+
+		return {
+			success: true,
+		}
+	}
+
+	public async updateKey(payload: KeyUpdateRequest): Promise<MutationResult> {
+		const scope = await this.requireProfileWithSecretAndNamespace(
+			payload.connectionId,
+			payload.namespaceId,
+		)
+		const keyScope = this.createNamespaceKeyScope(scope.namespace)
+		const currentKey = payload.currentKey.trim()
+		const nextKey = payload.key.trim()
+		const currentScopedKey = keyScope.mapKeyForMutation(currentKey)
+		const nextScopedKey = keyScope.mapKeyForMutation(nextKey)
+
+		await this.enforceWritable(scope.profile, 'key.update', currentKey)
+		if (nextKey !== currentKey) {
+			await this.enforceWritable(scope.profile, 'key.update', nextKey)
+			const existing = await this.cacheGateway.getValue(
+				scope.profile,
+				scope.secret,
+				nextScopedKey,
+			)
+			const destinationExists =
+				existing.keyType !== 'none' ||
+				(existing.value !== null && existing.value !== undefined)
+			if (destinationExists) {
+				throw new OperationFailure(
+					'CONFLICT',
+					`Key "${nextKey}" already exists.`,
+				)
+			}
+		}
+
+		await this.captureSnapshot(
+			scope.profile,
+			scope.secret,
+			currentKey,
+			'set',
+			currentScopedKey,
+		)
+
+		await this.executeWithPolicy({
+			profile: scope.profile,
+			action: 'key.update',
+			keyOrPattern:
+				currentKey === nextKey ? currentKey : `${currentKey} -> ${nextKey}`,
+			run: async () => {
+				await this.cacheGateway.setValue(scope.profile, scope.secret, {
+					key: nextScopedKey,
+					value: payload.value,
+					ttlSeconds: payload.ttlSeconds,
+				})
+
+				if (nextScopedKey !== currentScopedKey) {
+					await this.cacheGateway.deleteKey(
+						scope.profile,
+						scope.secret,
+						currentScopedKey,
+					)
+				}
+			},
 		})
 
 		return {

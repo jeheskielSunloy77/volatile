@@ -81,6 +81,8 @@ const handleCommand = async (
 			return service.deleteNamespace(envelope.payload)
 		case 'key.set':
 			return service.setKey(envelope.payload)
+		case 'key.update':
+			return service.updateKey(envelope.payload)
 		case 'key.delete':
 			return service.deleteKey(envelope.payload)
 		case 'rollback.restore':
